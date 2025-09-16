@@ -1,0 +1,78 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id                String      @id @default(cuid())
+  eventId           String      @unique
+  simulationId      String      @unique
+  name              String
+  description       String?
+  venue             String
+  expectedAttendees Int
+  eventDate         DateTime
+  eventType         EventType
+  s3Keys            Json?       // Store S3 object keys as JSON
+  status            EventStatus @default(CREATED)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  
+  // Relations
+  simulation        Simulation  @relation(fields: [simulationId], references: [simulationId])
+
+  @@map("events")
+}
+
+model Simulation {
+  id            String           @id @default(cuid())
+  simulationId  String           @unique
+  eventId       String
+  status        SimulationStatus @default(PENDING)
+  parameters    Json?            // Simulation parameters as JSON
+  progress      Json?            // Progress tracking as JSON
+  results       Json?            // Simulation results as JSON
+  error         String?          // Error message if failed
+  startedAt     DateTime?
+  completedAt   DateTime?
+  failedAt      DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  // Relations
+  event         Event            @relation(fields: [eventId], references: [eventId])
+
+  @@map("simulations")
+}
+
+enum EventType {
+  CONCERT
+  CONFERENCE
+  SPORTS
+  FESTIVAL
+  OTHER
+}
+
+enum EventStatus {
+  CREATED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum SimulationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
