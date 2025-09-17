@@ -44,23 +44,28 @@ class NotificationService {
         return false;
       }
 
-      const message = this.formatRecommendationMessage(simulationId, recommendations);
-      
-      // Try n8n webhook first
+      // Determine priority based on recommendations
+      const highPriorityCount = recommendations.filter(rec => rec.priority === 'HIGH').length;
+      const priority = highPriorityCount > 0 ? 'high' : 'medium';
+
+      // Try n8n webhook first (preferred method)
       if (this.n8nWebhookUrl) {
-        return await this.sendViaWebhook(simulationId, message, targetRecipients);
+        return await this.sendViaWebhook(simulationId, recommendations, targetRecipients, priority);
       }
       
       // Fallback to direct WhatsApp API
       if (this.whatsappApiUrl && this.whatsappApiKey) {
+        const message = this.formatRecommendationMessage(simulationId, recommendations);
         return await this.sendViaWhatsAppApi(simulationId, message, targetRecipients);
       }
 
       // Development fallback - log message
+      const message = this.formatRecommendationMessage(simulationId, recommendations);
       logger.info('WhatsApp notification (development mode)', {
         simulationId,
         message,
-        recipients: targetRecipients
+        recipients: targetRecipients,
+        priority
       });
       
       return true;
@@ -73,39 +78,53 @@ class NotificationService {
   /**
    * Sends notification via n8n webhook
    * @param {string} simulationId - Simulation ID
-   * @param {string} message - Message to send
+   * @param {Array} recommendations - Array of recommendations
    * @param {Array} recipients - Phone numbers
+   * @param {string} priority - Priority level
    * @returns {Promise<boolean>} - Success status
    */
-  async sendViaWebhook(simulationId, message, recipients) {
+  async sendViaWebhook(simulationId, recommendations, recipients, priority = 'medium') {
     try {
-      logger.info('Sending notification via n8n webhook', { simulationId });
+      logger.info('Sending notification via n8n webhook', { simulationId, priority });
 
+      // Create the structured payload that the n8n workflow expects
       const webhookPayload = {
         simulationId,
-        message,
+        message: `Event AI simulation ${simulationId} completed with ${recommendations.length} recommendations`,
         recipients,
         timestamp: new Date().toISOString(),
         type: 'whatsapp_alert',
-        priority: 'high'
+        priority,
+        recommendations: recommendations.map(rec => ({
+          id: rec.id,
+          type: rec.type,
+          priority: rec.priority,
+          title: rec.title,
+          description: rec.description,
+          estimatedImpact: rec.estimatedImpact,
+          implementationTime: rec.implementationTime
+        }))
       };
 
       const response = await axios.post(this.n8nWebhookUrl, webhookPayload, {
         headers: {
           'Content-Type': 'application/json',
-          'User-Agent': 'EventAI-Server/1.0'
+          'User-Agent': 'EventAI-Server/1.0',
+          'X-Event-AI-Source': 'notification-service'
         },
         timeout: 30000 // 30 seconds timeout
       });
 
       if (response.status >= 200 && response.status < 300) {
-        logger.info('WhatsApp alert sent successfully via webhook', { 
+        logger.info('WhatsApp alert sent successfully via n8n webhook', { 
           simulationId, 
-          status: response.status 
+          status: response.status,
+          recipientCount: recipients.length,
+          recommendationCount: recommendations.length
         });
         return true;
       } else {
-        logger.error('Webhook returned non-success status', { 
+        logger.error('n8n webhook returned non-success status', { 
           simulationId, 
           status: response.status,
           data: response.data
@@ -113,10 +132,12 @@ class NotificationService {
         return false;
       }
     } catch (error) {
-      logger.error('Error sending notification via webhook', { 
+      logger.error('Error sending notification via n8n webhook', { 
         simulationId, 
         error: error.message,
-        webhookUrl: this.n8nWebhookUrl
+        webhookUrl: this.n8nWebhookUrl,
+        errorCode: error.code,
+        responseStatus: error.response?.status
       });
       return false;
     }

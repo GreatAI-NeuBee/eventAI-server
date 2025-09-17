@@ -17,8 +17,9 @@ The server follows a serverless architecture using AWS services:
 
 - **Event Management**: Create, update, and manage events with file uploads
 - **AI Simulation**: Trigger crowd flow simulations with real-time progress tracking
-- **Real-time Notifications**: WhatsApp alerts for high-priority recommendations
+- **Real-time Notifications**: WhatsApp alerts via n8n workflow integration for high-priority recommendations
 - **File Management**: Secure S3 integration for ticketing data and seating charts
+- **n8n Integration**: Complete workflow automation for webhook processing and WhatsApp delivery
 - **Comprehensive Logging**: Winston-based logging with request tracking
 - **Error Handling**: Centralized error handling with proper HTTP status codes
 - **Security**: Rate limiting, CORS, security headers, and input validation
@@ -119,9 +120,13 @@ SAGEMAKER_ENDPOINT_NAME=event-ai-model-endpoint
 AI_MODEL_API_URL=https://your-ai-api.com/predict
 AI_MODEL_API_KEY=your_api_key
 
-# Notifications
-N8N_WEBHOOK_URL=https://your-n8n.com/webhook/whatsapp
+# n8n Integration (Primary notification method)
+N8N_WEBHOOK_URL=https://your-n8n.com/webhook/event-ai-alert
 NOTIFICATION_RECIPIENTS=+1234567890,+0987654321
+
+# WhatsApp Direct API (Fallback method)
+WHATSAPP_API_URL=https://api.whatsapp.com/send
+WHATSAPP_API_KEY=your_whatsapp_api_key
 ```
 
 ## 📚 API Endpoints
@@ -196,6 +201,52 @@ curl -X POST https://your-api-gateway-url/api/v1/simulations/run \
 - **CloudWatch Integration**: Automatic log aggregation in AWS
 - **Health Check**: `/health` endpoint for monitoring
 
+## 🔗 n8n WhatsApp Integration
+
+This server includes a complete n8n workflow integration for WhatsApp notifications:
+
+### Setup n8n Workflow
+1. Import the workflow from `n8n-workflow.json`
+2. Configure WhatsApp Business API credentials
+3. Set up environment variables in n8n
+4. Update your server's `N8N_WEBHOOK_URL` environment variable
+
+### Test the Integration
+```bash
+# Test the n8n webhook integration
+node test-webhook.js
+
+# Set environment variables for testing
+export N8N_WEBHOOK_URL="https://your-n8n-instance.com/webhook/event-ai-alert"
+export TEST_RECIPIENTS="+1234567890,+0987654321"
+```
+
+### Webhook Payload Format
+The server sends structured data to n8n:
+```json
+{
+  "simulationId": "sim_12345",
+  "message": "Event AI simulation completed",
+  "recipients": ["+1234567890"],
+  "timestamp": "2024-01-01T12:00:00Z",
+  "priority": "high",
+  "type": "whatsapp_alert",
+  "recommendations": [
+    {
+      "id": "rec_1",
+      "type": "CROWD_CONTROL",
+      "priority": "HIGH",
+      "title": "Deploy Additional Staff",
+      "description": "High congestion detected",
+      "estimatedImpact": "Reduce wait time by 60%",
+      "implementationTime": "10 minutes"
+    }
+  ]
+}
+```
+
+For detailed setup instructions, see `n8n-setup-guide.md`.
+
 ## 🧪 Testing
 
 ```bash
@@ -210,6 +261,9 @@ npm run lint
 
 # Fix linting issues
 npm run lint:fix
+
+# Test n8n webhook integration
+node test-webhook.js
 ```
 
 ## 📦 Deployment

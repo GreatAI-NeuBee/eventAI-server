@@ -1,0 +1,119 @@
+{
+  "name": "Event AI WhatsApp Notification (Simple)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "event-ai-alert",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "responseCode": 200
+      },
+      "id": "webhook-trigger",
+      "name": "Event AI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 200],
+      "webhookId": "event-ai-webhook"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// SIMPLE: Process and decide in one step\nconst rawInput = $input.first();\n\nconsole.log('=== RAW INPUT ===');\nconsole.log('Input:', JSON.stringify(rawInput, null, 2));\n\n// Find webhook data\nfunction findWebhookData(obj) {\n  if (!obj || typeof obj !== 'object') return null;\n  if (obj.simulationId) return obj;\n  \n  for (const value of Object.values(obj)) {\n    if (value && typeof value === 'object') {\n      const found = findWebhookData(value);\n      if (found) return found;\n    }\n  }\n  return null;\n}\n\nconst webhookData = findWebhookData(rawInput) || rawInput;\n\n// Extract data\nconst simulationId = webhookData.simulationId || 'unknown';\nconst message = webhookData.message || 'No message';\nconst recipients = webhookData.recipients || [];\nconst timestamp = webhookData.timestamp || new Date().toISOString();\nconst priority = webhookData.priority || 'medium';\nconst recommendations = webhookData.recommendations || [];\n\nconsole.log('=== EXTRACTED ===');\nconsole.log('simulationId:', simulationId);\nconsole.log('priority:', priority);\nconsole.log('recipients:', recipients.length);\nconsole.log('recommendations:', recommendations.length);\n\n// Filter high priority\nconst highPriorityRecs = recommendations.filter(rec => \n  rec && (rec.priority === 'HIGH' || rec.priority === 'high')\n);\n\n// Decision logic\nconst shouldSend = (priority === 'high' || priority === 'HIGH') || highPriorityRecs.length > 0;\n\nconsole.log('=== DECISION ===');\nconsole.log('High priority recs:', highPriorityRecs.length);\nconsole.log('Should send WhatsApp:', shouldSend);\n\nif (!shouldSend) {\n  console.log('⏭️ Skipping WhatsApp - low priority');\n  return {\n    action: 'skip',\n    reason: 'low_priority',\n    simulationId,\n    priority,\n    highPriorityCount: highPriorityRecs.length\n  };\n}\n\n// Format message\nlet formattedMessage = `🚨 *Event AI Alert* 🚨\\n\\n`;\nformattedMessage += `Simulation: ${simulationId}\\n`;\nformattedMessage += `Time: ${new Date(timestamp).toLocaleString()}\\n\\n`;\n\nif (highPriorityRecs.length > 0) {\n  formattedMessage += `🔴 *HIGH PRIORITY ACTIONS*\\n`;\n  highPriorityRecs.forEach((rec, i) => {\n    formattedMessage += `${i + 1}. *${rec.title || 'Action Required'}*\\n`;\n    formattedMessage += `   ${rec.description || ''}\\n`;\n    if (rec.implementationTime) formattedMessage += `   ⏱️ ${rec.implementationTime}\\n`;\n    if (rec.estimatedImpact) formattedMessage += `   📈 ${rec.estimatedImpact}\\n`;\n    formattedMessage += `\\n`;\n  });\n}\n\nformattedMessage += `\\n📊 View dashboard for details\\n_Event AI System_`;\n\nconsole.log('✅ Sending WhatsApp to:', recipients.length, 'recipients');\n\n// Return data for each recipient\nconst results = recipients.map(recipient => ({\n  action: 'send_whatsapp',\n  simulationId,\n  recipient,\n  formattedMessage,\n  priority,\n  highPriorityCount: highPriorityRecs.length,\n  timestamp: new Date().toISOString()\n}));\n\nreturn results;"
+      },
+      "id": "process-and-decide",
+      "name": "Process and Decide",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 200]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $vars.WHATSAPP_PHONE_NUMBER_ID }}",
+        "recipientPhoneNumber": "={{ $json.recipient }}",
+        "messageType": "text",
+        "textBody": "={{ $json.formattedMessage }}"
+      },
+      "id": "send-whatsapp",
+      "name": "Send WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [500, 150],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-business-api",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "const data = $input.first().json;\n\nif (data.action === 'send_whatsapp') {\n  console.log('✅ WhatsApp sent to:', data.recipient);\n  return {\n    status: 'sent',\n    simulationId: data.simulationId,\n    recipient: data.recipient,\n    sentAt: data.timestamp\n  };\n} else {\n  console.log('⏭️ WhatsApp skipped:', data.reason);\n  return {\n    status: 'skipped',\n    reason: data.reason,\n    simulationId: data.simulationId,\n    priority: data.priority\n  };\n}"
+      },
+      "id": "log-result",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 200]
+    }
+  ],
+  "connections": {
+    "Event AI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process and Decide",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process and Decide": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "",
+    "timezone": "America/New_York"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "event-ai-simple",
+      "name": "Event AI Simple"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "3"
+}
