@@ -52,20 +52,45 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      scriptSrc: ["'self'"],
-      imgSrc: ["'self'", "data:", "https:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "data:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      imgSrc: ["'self'", "data:", "https:", "http:"],
+      fontSrc: ["'self'", "data:"],
+      connectSrc: ["'self'", "http:", "https:"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
     },
   },
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS configuration
+// CORS configuration for EC2 deployment
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000'],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow localhost and EC2 instances
+    if (origin.includes('localhost') || 
+        origin.includes('127.0.0.1') || 
+        origin.includes('43.216.157.151') ||
+        (process.env.ALLOWED_ORIGINS && process.env.ALLOWED_ORIGINS.split(',').includes(origin))) {
+      return callback(null, true);
+    }
+    
+    // For development, allow all origins
+    if (process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
 // Rate limiting
@@ -99,17 +124,30 @@ app.use((req, res, next) => {
 const swaggerDocument = YAML.load(path.join(__dirname, '..', 'docs', 'openapi.yaml'));
 
 // Update servers in swagger document based on environment
-if (process.env.NODE_ENV === 'production') {
-  swaggerDocument.servers = [
-    { url: process.env.API_BASE_URL || 'https://your-domain.com', description: 'Production server' },
-    { url: 'http://localhost:3000', description: 'Local development server' }
-  ];
-} else {
-  swaggerDocument.servers = [
-    { url: 'http://localhost:3000', description: 'Local development server' },
-    { url: 'https://your-domain.com', description: 'Production server' }
-  ];
-}
+const getServerUrl = (req) => {
+  if (req && req.headers.host) {
+    const protocol = req.headers['x-forwarded-proto'] || (req.connection.encrypted ? 'https' : 'http');
+    return `${protocol}://${req.headers.host}`;
+  }
+  return process.env.API_BASE_URL || 'http://localhost:3000';
+};
+
+// Dynamic server configuration
+const configureSwaggerServers = (req) => {
+  const currentServerUrl = getServerUrl(req);
+  
+  if (process.env.NODE_ENV === 'production') {
+    return [
+      { url: currentServerUrl, description: 'Current server' },
+      { url: 'http://localhost:3000', description: 'Local development server' }
+    ];
+  } else {
+    return [
+      { url: 'http://localhost:3000', description: 'Local development server' },
+      { url: currentServerUrl, description: 'Current server' }
+    ];
+  }
+};
 
 // Swagger UI options
 const swaggerOptions = {
@@ -121,16 +159,141 @@ const swaggerOptions = {
     filter: true,
     showRequestHeaders: true,
     showCommonExtensions: true,
-    tryItOutEnabled: true
-  }
+    tryItOutEnabled: true,
+    // Force HTTP for EC2 deployment without SSL
+    supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+    defaultModelsExpandDepth: 1,
+    defaultModelExpandDepth: 1
+  },
+  // Fix for EC2 deployment - serve assets locally
+  swaggerUrl: undefined,
+  explorer: false,
+  customCssUrl: undefined
 };
 
-// Serve API documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
+// Serve API documentation with dynamic server configuration
+app.use('/api-docs', swaggerUi.serve);
+app.get('/api-docs', (req, res) => {
+  // Update servers dynamically based on current request
+  const dynamicSwaggerDocument = { 
+    ...swaggerDocument, 
+    servers: configureSwaggerServers(req) 
+  };
+  
+  res.send(swaggerUi.generateHTML(dynamicSwaggerDocument, swaggerOptions));
+});
 
 // API documentation redirect
 app.get('/docs', (req, res) => {
   res.redirect('/api-docs');
+});
+
+// Simple API documentation fallback for EC2
+app.get('/api-docs-simple', (req, res) => {
+  const serverUrl = getServerUrl(req);
+  
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Event AI API Documentation</title>
+      <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        h1, h2 { color: #333; }
+        .endpoint { background: #f4f4f4; padding: 15px; margin: 10px 0; border-left: 4px solid #007cba; }
+        .method { font-weight: bold; color: #fff; padding: 4px 8px; border-radius: 3px; }
+        .get { background: #61affe; }
+        .post { background: #49cc90; }
+        .put { background: #fca130; }
+        .delete { background: #f93e3e; }
+        code { background: #f1f1f1; padding: 2px 4px; border-radius: 3px; }
+      </style>
+    </head>
+    <body>
+      <h1>🚀 Event AI Server API Documentation</h1>
+      <p><strong>Server:</strong> ${serverUrl}</p>
+      <p><strong>Version:</strong> 1.0.0</p>
+      
+      <h2>📋 Quick Links</h2>
+      <ul>
+        <li><a href="${serverUrl}/health">Health Check</a></li>
+        <li><a href="${serverUrl}/api-docs.json">OpenAPI JSON</a></li>
+        <li><a href="${serverUrl}/postman-guide">Postman Guide</a></li>
+        <li><a href="${serverUrl}/api-docs">Full Swagger UI</a> (if supported)</li>
+      </ul>
+      
+      <h2>🔗 API Endpoints</h2>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/health</code>
+        <p>Server health check and metrics</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method post">POST</span> <code>/api/v1/events</code>
+        <p>Create a new event (supports JSON and multipart form data)</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/events</code>
+        <p>List all events (paginated)</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/events/{eventId}</code>
+        <p>Get specific event by ID</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method put">PUT</span> <code>/api/v1/events/{eventId}</code>
+        <p>Update existing event</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method delete">DELETE</span> <code>/api/v1/events/{eventId}</code>
+        <p>Delete event</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method post">POST</span> <code>/api/v1/simulations/{simulationId}/trigger</code>
+        <p>Start AI simulation</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/simulations/{simulationId}/status</code>
+        <p>Get simulation status</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/simulations/{simulationId}/results</code>
+        <p>Get simulation results</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/simulations</code>
+        <p>List all simulations (paginated)</p>
+      </div>
+      
+      <h2>🧪 Quick Test</h2>
+      <p>Test the API with curl:</p>
+      <pre><code>curl ${serverUrl}/health</code></pre>
+      <pre><code>curl -X POST ${serverUrl}/api/v1/events \\
+  -H "Content-Type: application/json" \\
+  -d '{"name":"Test Event","venue":"Test Venue","expectedAttendees":100,"eventDate":"2024-12-31T20:00:00Z","eventType":"CONCERT"}'</code></pre>
+      
+      <h2>📚 Full Documentation</h2>
+      <p>For complete interactive documentation, try:</p>
+      <ul>
+        <li><a href="${serverUrl}/api-docs">Swagger UI</a> (may require HTTPS)</li>
+        <li><a href="${serverUrl}/api-docs.json">Download OpenAPI JSON</a></li>
+        <li><a href="${serverUrl}/postman-guide">Postman Collection Guide</a></li>
+      </ul>
+      
+      <hr>
+      <p><small>Event AI Server - ${new Date().toISOString()}</small></p>
+    </body>
+    </html>
+  `);
 });
 
 // Health check endpoint
@@ -149,10 +312,15 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Serve OpenAPI JSON
+// Serve OpenAPI JSON with dynamic servers
 app.get('/api-docs.json', (req, res) => {
+  const dynamicSwaggerDocument = { 
+    ...swaggerDocument, 
+    servers: configureSwaggerServers(req) 
+  };
+  
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerDocument);
+  res.send(dynamicSwaggerDocument);
 });
 
 // Serve Postman Guide
