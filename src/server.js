@@ -171,16 +171,69 @@ const swaggerOptions = {
   customCssUrl: undefined
 };
 
-// Serve API documentation with dynamic server configuration
-app.use('/api-docs', swaggerUi.serve);
+// Custom Swagger UI that forces HTTP for EC2
 app.get('/api-docs', (req, res) => {
-  // Update servers dynamically based on current request
+  const serverUrl = getServerUrl(req);
   const dynamicSwaggerDocument = { 
     ...swaggerDocument, 
     servers: configureSwaggerServers(req) 
   };
   
-  res.send(swaggerUi.generateHTML(dynamicSwaggerDocument, swaggerOptions));
+  // Create custom HTML that forces HTTP URLs
+  const customSwaggerHTML = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Event AI API Documentation</title>
+      <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui.css" />
+      <style>
+        html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
+        *, *:before, *:after { box-sizing: inherit; }
+        body { margin:0; background: #fafafa; }
+        .swagger-ui .topbar { display: none; }
+      </style>
+    </head>
+    <body>
+      <div id="swagger-ui"></div>
+      <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
+      <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
+      <script>
+        window.onload = function() {
+          const ui = SwaggerUIBundle({
+            url: '${serverUrl}/api-docs.json',
+            dom_id: '#swagger-ui',
+            deepLinking: true,
+            presets: [
+              SwaggerUIBundle.presets.apis,
+              SwaggerUIStandalonePreset
+            ],
+            plugins: [
+              SwaggerUIBundle.plugins.DownloadUrl
+            ],
+            layout: "StandaloneLayout",
+            validatorUrl: null,
+            // Force HTTP for all requests
+            requestInterceptor: function(request) {
+              // Force HTTP for EC2 deployment
+              if (request.url.startsWith('https://43.216.157.151')) {
+                request.url = request.url.replace('https://', 'http://');
+              }
+              return request;
+            },
+            // Custom configuration for EC2
+            supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+            tryItOutEnabled: true,
+            filter: true,
+            showRequestHeaders: true
+          });
+        };
+      </script>
+    </body>
+    </html>
+  `;
+  
+  res.send(customSwaggerHTML);
 });
 
 // API documentation redirect
