@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const winston = require('winston');
 
-const rdsService = require('../services/rdsService');
+const supabaseService = require('../services/supabaseService');
 const aiModelService = require('../services/aiModelService');
 const notificationService = require('../services/notificationService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
@@ -70,7 +70,7 @@ router.post('/run', validateRunSimulation, asyncHandler(async (req, res) => {
 
   try {
     // Get simulation data from RDS
-    const simulation = await rdsService.getSimulationById(simulationId);
+    const simulation = await supabaseService.getSimulationById(simulationId);
     if (!simulation) {
       throw new AppError('Simulation not found', 404);
     }
@@ -85,7 +85,7 @@ router.post('/run', validateRunSimulation, asyncHandler(async (req, res) => {
     }
 
     // Update simulation status to RUNNING
-    await rdsService.updateSimulationStatus(simulationId, 'RUNNING', {
+    await supabaseService.updateSimulationStatus(simulationId, 'RUNNING', {
       startedAt: new Date(),
       parameters
     });
@@ -96,7 +96,7 @@ router.post('/run', validateRunSimulation, asyncHandler(async (req, res) => {
         logger.info('Simulation completed successfully', { simulationId });
         
         // Update simulation with results
-        await rdsService.updateSimulationStatus(simulationId, 'COMPLETED', {
+        await supabaseService.updateSimulationStatus(simulationId, 'COMPLETED', {
           completedAt: new Date(),
           results
         });
@@ -118,7 +118,7 @@ router.post('/run', validateRunSimulation, asyncHandler(async (req, res) => {
         logger.error('Simulation failed', { simulationId, error: error.message });
         
         // Update simulation status to FAILED
-        await rdsService.updateSimulationStatus(simulationId, 'FAILED', {
+        await supabaseService.updateSimulationStatus(simulationId, 'FAILED', {
           failedAt: new Date(),
           error: error.message
         });
@@ -156,7 +156,7 @@ router.get('/:simulationId/status', asyncHandler(async (req, res) => {
   logger.info('Checking simulation status', { simulationId });
 
   try {
-    const simulation = await rdsService.getSimulationById(simulationId);
+    const simulation = await supabaseService.getSimulationById(simulationId);
     
     if (!simulation) {
       throw new AppError('Simulation not found', 404);
@@ -215,7 +215,7 @@ router.get('/:simulationId/results', asyncHandler(async (req, res) => {
   logger.info('Retrieving simulation results', { simulationId });
 
   try {
-    const simulation = await rdsService.getSimulationById(simulationId);
+    const simulation = await supabaseService.getSimulationById(simulationId);
     
     if (!simulation) {
       throw new AppError('Simulation not found', 404);
@@ -230,7 +230,7 @@ router.get('/:simulationId/results', asyncHandler(async (req, res) => {
     }
 
     // Get event details for context
-    const event = await rdsService.getEventById(simulation.eventId);
+    const event = await supabaseService.getEventById(simulation.eventId);
 
     const responseData = {
       simulationId,
@@ -270,14 +270,14 @@ router.get('/:simulationId', asyncHandler(async (req, res) => {
   logger.info('Retrieving simulation details', { simulationId });
 
   try {
-    const simulation = await rdsService.getSimulationById(simulationId);
+    const simulation = await supabaseService.getSimulationById(simulationId);
     
     if (!simulation) {
       throw new AppError('Simulation not found', 404);
     }
 
     // Get associated event details
-    const event = await rdsService.getEventById(simulation.eventId);
+    const event = await supabaseService.getEventById(simulation.eventId);
 
     const responseData = {
       ...simulation,
@@ -318,7 +318,7 @@ router.delete('/:simulationId', asyncHandler(async (req, res) => {
   logger.info('Canceling/deleting simulation', { simulationId });
 
   try {
-    const simulation = await rdsService.getSimulationById(simulationId);
+    const simulation = await supabaseService.getSimulationById(simulationId);
     
     if (!simulation) {
       throw new AppError('Simulation not found', 404);
@@ -327,7 +327,7 @@ router.delete('/:simulationId', asyncHandler(async (req, res) => {
     if (simulation.status === 'RUNNING') {
       // Cancel the running simulation
       await aiModelService.cancelSimulation(simulationId);
-      await rdsService.updateSimulationStatus(simulationId, 'CANCELLED', {
+      await supabaseService.updateSimulationStatus(simulationId, 'CANCELLED', {
         cancelledAt: new Date()
       });
       
@@ -337,7 +337,7 @@ router.delete('/:simulationId', asyncHandler(async (req, res) => {
       });
     } else {
       // Delete simulation data
-      await rdsService.deleteSimulation(simulationId);
+      await supabaseService.deleteSimulation(simulationId);
       
       res.status(200).json({
         success: true,
@@ -372,7 +372,7 @@ router.get('/', asyncHandler(async (req, res) => {
     if (status) filters.status = status;
     if (eventId) filters.eventId = eventId;
 
-    const { simulations, total } = await rdsService.getSimulations(limit, offset, filters);
+    const { simulations, total } = await supabaseService.getSimulations(limit, offset, filters);
 
     res.status(200).json({
       success: true,

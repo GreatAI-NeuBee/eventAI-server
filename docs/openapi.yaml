@@ -1,0 +1,926 @@
+openapi: 3.0.3
+info:
+  title: Event AI Server API
+  description: |
+    A comprehensive REST API for the Event AI platform that handles event management, 
+    AI-powered crowd simulation, and real-time notifications.
+    
+    ## Architecture
+    - **Server**: Express.js on AWS EC2
+    - **Database**: Supabase PostgreSQL  
+    - **Storage**: AWS S3
+    - **AI**: Amazon SageMaker
+    - **Notifications**: n8n + WhatsApp Business API
+    
+    ## Authentication
+    Currently using API key authentication. Future versions will include JWT.
+    
+    ## Rate Limiting
+    - 100 requests per 15 minutes per IP
+    - Configurable via RATE_LIMIT environment variable
+    
+    ## Response Format
+    All responses follow a consistent format:
+    ```json
+    {
+      "success": true|false,
+      "data": {...},
+      "message": "Optional message",
+      "error": "Error details if success=false"
+    }
+    ```
+  version: 1.0.0
+  contact:
+    name: Event AI Team
+    email: support@eventai.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:3000
+    description: Local development server
+  - url: https://your-domain.com
+    description: Production server
+  - url: https://staging.your-domain.com
+    description: Staging server
+
+paths:
+  /:
+    get:
+      summary: Root endpoint
+      description: Returns basic server information
+      tags:
+        - System
+      responses:
+        '200':
+          description: Server information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Event AI Server"
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  environment:
+                    type: string
+                    example: "development"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /health:
+    get:
+      summary: Health check endpoint
+      description: Returns server health status and metrics
+      tags:
+        - System
+      responses:
+        '200':
+          description: Server health information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  environment:
+                    type: string
+                    example: "development"
+                  uptime:
+                    type: number
+                    description: Server uptime in seconds
+                    example: 3600
+                  memoryUsage:
+                    type: object
+                    properties:
+                      rss:
+                        type: number
+                        description: Resident Set Size
+                      heapTotal:
+                        type: number
+                        description: Total heap size
+                      heapUsed:
+                        type: number
+                        description: Used heap size
+                      external:
+                        type: number
+                        description: External memory usage
+
+  /api/v1/events:
+    post:
+      summary: Create a new event
+      description: Creates a new event with optional file uploads for ticketing data and seating charts
+      tags:
+        - Events
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - name
+                - venue
+                - expectedAttendees
+                - eventDate
+                - eventType
+              properties:
+                name:
+                  type: string
+                  description: Event name
+                  example: "Summer Music Festival 2024"
+                description:
+                  type: string
+                  description: Event description
+                  example: "Annual outdoor music festival featuring top artists"
+                venue:
+                  type: string
+                  description: Event venue
+                  example: "Central Park"
+                expectedAttendees:
+                  type: integer
+                  minimum: 1
+                  description: Expected number of attendees
+                  example: 5000
+                eventDate:
+                  type: string
+                  format: date-time
+                  description: Event date and time
+                  example: "2024-07-15T18:00:00Z"
+                eventType:
+                  type: string
+                  enum: [CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER]
+                  description: Type of event
+                  example: "FESTIVAL"
+                ticketingData:
+                  type: string
+                  format: binary
+                  description: CSV file with ticketing data
+                seatingChart:
+                  type: string
+                  format: binary
+                  description: JSON file with seating chart data
+      responses:
+        '201':
+          description: Event created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                        example: "evt_123456789"
+                      simulationId:
+                        type: string
+                        example: "sim_123456789"
+                  message:
+                    type: string
+                    example: "Event created successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      summary: Get all events
+      description: Retrieves a paginated list of events
+      tags:
+        - Events
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of events per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          description: Filter by event status
+          schema:
+            type: string
+            enum: [CREATED, ACTIVE, COMPLETED, CANCELLED]
+      responses:
+        '200':
+          description: List of events
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      events:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Event'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/events/{eventId}:
+    get:
+      summary: Get event by ID
+      description: Retrieves a specific event by its ID
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+            pattern: '^evt_[a-zA-Z0-9]+$'
+            example: "evt_123456789"
+      responses:
+        '200':
+          description: Event details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Event'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    put:
+      summary: Update event
+      description: Updates an existing event
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                venue:
+                  type: string
+                expectedAttendees:
+                  type: integer
+                  minimum: 1
+                eventDate:
+                  type: string
+                  format: date-time
+                eventType:
+                  type: string
+                  enum: [CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER]
+      responses:
+        '200':
+          description: Event updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Event'
+                  message:
+                    type: string
+                    example: "Event updated successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete event
+      description: Deletes an event and its associated simulation
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Event deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Event deleted successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/simulations/{simulationId}/trigger:
+    post:
+      summary: Trigger AI simulation
+      description: Starts an AI simulation for crowd flow analysis
+      tags:
+        - Simulations
+      parameters:
+        - name: simulationId
+          in: path
+          required: true
+          description: Simulation ID
+          schema:
+            type: string
+            pattern: '^sim_[a-zA-Z0-9]+$'
+            example: "sim_123456789"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                parameters:
+                  type: object
+                  description: Simulation parameters
+                  properties:
+                    crowdDensityThreshold:
+                      type: number
+                      minimum: 0
+                      maximum: 1
+                      description: Crowd density threshold (0-1)
+                      example: 0.7
+                    simulationDuration:
+                      type: integer
+                      minimum: 60
+                      description: Simulation duration in seconds
+                      example: 3600
+                    weatherConditions:
+                      type: string
+                      enum: [sunny, rainy, cloudy, windy]
+                      description: Weather conditions for simulation
+                      example: "sunny"
+                    emergencyScenario:
+                      type: boolean
+                      description: Include emergency scenario
+                      example: false
+      responses:
+        '200':
+          description: Simulation triggered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      simulationId:
+                        type: string
+                        example: "sim_123456789"
+                      status:
+                        type: string
+                        example: "RUNNING"
+                      startedAt:
+                        type: string
+                        format: date-time
+                  message:
+                    type: string
+                    example: "Simulation started successfully"
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/simulations/{simulationId}/status:
+    get:
+      summary: Get simulation status
+      description: Retrieves the current status of a simulation
+      tags:
+        - Simulations
+      parameters:
+        - name: simulationId
+          in: path
+          required: true
+          description: Simulation ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Simulation status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Simulation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/simulations/{simulationId}/results:
+    get:
+      summary: Get simulation results
+      description: Retrieves the results of a completed simulation
+      tags:
+        - Simulations
+      parameters:
+        - name: simulationId
+          in: path
+          required: true
+          description: Simulation ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Simulation results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      simulationId:
+                        type: string
+                        example: "sim_123456789"
+                      status:
+                        type: string
+                        example: "COMPLETED"
+                      results:
+                        $ref: '#/components/schemas/SimulationResults'
+                      completedAt:
+                        type: string
+                        format: date-time
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Simulation not completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Simulation is not completed yet"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/simulations:
+    get:
+      summary: Get all simulations
+      description: Retrieves a paginated list of simulations
+      tags:
+        - Simulations
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-based)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          description: Number of simulations per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: status
+          in: query
+          description: Filter by simulation status
+          schema:
+            type: string
+            enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED]
+        - name: eventId
+          in: query
+          description: Filter by event ID
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of simulations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      simulations:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Simulation'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  schemas:
+    Event:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Internal database ID
+        eventId:
+          type: string
+          description: External event ID
+          example: "evt_123456789"
+        simulationId:
+          type: string
+          description: Associated simulation ID
+          example: "sim_123456789"
+        name:
+          type: string
+          description: Event name
+          example: "Summer Music Festival 2024"
+        description:
+          type: string
+          description: Event description
+          example: "Annual outdoor music festival"
+        venue:
+          type: string
+          description: Event venue
+          example: "Central Park"
+        expectedAttendees:
+          type: integer
+          description: Expected number of attendees
+          example: 5000
+        eventDate:
+          type: string
+          format: date-time
+          description: Event date and time
+        eventType:
+          type: string
+          enum: [CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER]
+          description: Type of event
+        s3Keys:
+          type: object
+          description: S3 file keys for uploaded data
+          properties:
+            ticketingData:
+              type: string
+              example: "events/evt_123456789/ticketing-data.csv"
+            seatingChart:
+              type: string
+              example: "events/evt_123456789/seating-chart.json"
+        status:
+          type: string
+          enum: [CREATED, ACTIVE, COMPLETED, CANCELLED]
+          description: Event status
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        simulation:
+          $ref: '#/components/schemas/Simulation'
+
+    Simulation:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Internal database ID
+        simulationId:
+          type: string
+          description: External simulation ID
+          example: "sim_123456789"
+        eventId:
+          type: string
+          description: Associated event ID
+          example: "evt_123456789"
+        status:
+          type: string
+          enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED]
+          description: Simulation status
+        parameters:
+          type: object
+          description: Simulation parameters
+          properties:
+            crowdDensityThreshold:
+              type: number
+              example: 0.7
+            simulationDuration:
+              type: integer
+              example: 3600
+            weatherConditions:
+              type: string
+              example: "sunny"
+        progress:
+          type: object
+          description: Simulation progress information
+          properties:
+            percentage:
+              type: number
+              minimum: 0
+              maximum: 100
+              example: 75
+            currentStep:
+              type: string
+              example: "Analyzing crowd patterns"
+            estimatedTimeRemaining:
+              type: integer
+              description: Estimated time remaining in seconds
+              example: 300
+        results:
+          $ref: '#/components/schemas/SimulationResults'
+        error:
+          type: string
+          description: Error message if simulation failed
+        startedAt:
+          type: string
+          format: date-time
+          description: Simulation start time
+        completedAt:
+          type: string
+          format: date-time
+          description: Simulation completion time
+        failedAt:
+          type: string
+          format: date-time
+          description: Simulation failure time
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Simulation cancellation time
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+        event:
+          type: object
+          description: Associated event information
+          properties:
+            eventId:
+              type: string
+            name:
+              type: string
+            venue:
+              type: string
+            eventDate:
+              type: string
+              format: date-time
+            eventType:
+              type: string
+
+    SimulationResults:
+      type: object
+      properties:
+        summary:
+          type: object
+          properties:
+            totalAttendees:
+              type: integer
+              example: 4850
+            peakCrowdDensity:
+              type: number
+              example: 0.85
+            averageWaitTime:
+              type: number
+              example: 12.5
+            bottleneckAreas:
+              type: array
+              items:
+                type: string
+              example: ["Main Entrance", "Food Court"]
+        recommendations:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                example: "rec_001"
+              type:
+                type: string
+                example: "CROWD_CONTROL"
+              priority:
+                type: string
+                enum: [HIGH, MEDIUM, LOW]
+                example: "HIGH"
+              title:
+                type: string
+                example: "Deploy Additional Staff at Main Entrance"
+              description:
+                type: string
+                example: "High congestion detected at main entrance"
+              estimatedImpact:
+                type: string
+                example: "Reduce wait time by 60%"
+              implementationTime:
+                type: string
+                example: "10 minutes"
+        crowdFlowAnalysis:
+          type: object
+          properties:
+            peakHours:
+              type: array
+              items:
+                type: string
+              example: ["18:00-19:00", "20:00-21:00"]
+            congestionHotspots:
+              type: array
+              items:
+                type: object
+                properties:
+                  area:
+                    type: string
+                  severity:
+                    type: string
+                  timeFrame:
+                    type: string
+        riskAssessment:
+          type: object
+          properties:
+            overallRisk:
+              type: string
+              enum: [LOW, MEDIUM, HIGH, CRITICAL]
+              example: "MEDIUM"
+            specificRisks:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  probability:
+                    type: number
+                  impact:
+                    type: string
+
+    Pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 10
+        totalItems:
+          type: integer
+          example: 95
+        itemsPerPage:
+          type: integer
+          example: 10
+        hasNextPage:
+          type: boolean
+          example: true
+        hasPreviousPage:
+          type: boolean
+          example: false
+
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        details:
+          type: object
+          description: Additional error details
+
+  responses:
+    BadRequest:
+      description: Bad request - validation errors
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Validation failed"
+            code: "VALIDATION_ERROR"
+            details:
+              - field: "expectedAttendees"
+                message: "Expected attendees must be a positive number"
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Event not found"
+            code: "NOT_FOUND"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            success: false
+            error: "Internal server error"
+            code: "INTERNAL_ERROR"
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: System
+    description: System health and information endpoints
+  - name: Events
+    description: Event management operations
+  - name: Simulations
+    description: AI simulation operations

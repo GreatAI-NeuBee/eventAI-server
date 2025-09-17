@@ -2,12 +2,31 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 const winston = require('winston');
+const multer = require('multer');
 
 const s3Service = require('../services/s3Service');
-const rdsService = require('../services/rdsService');
+const supabaseService = require('../services/supabaseService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 2 // Max 2 files (ticketingData + seatingChart)
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow CSV for ticketing data and JSON for seating chart
+    const allowedMimes = ['text/csv', 'application/json', 'text/plain'];
+    if (allowedMimes.includes(file.mimetype) || file.mimetype.startsWith('text/')) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Invalid file type: ${file.mimetype}. Only CSV and JSON files are allowed.`), false);
+    }
+  }
+});
 
 // Configure logger
 const logger = winston.createLogger({
@@ -25,7 +44,136 @@ const logger = winston.createLogger({
   ]
 });
 
-// Validation middleware for creating events
+// Custom validation middleware for multipart form data
+const validateMultipartEventData = (req, res, next) => {
+  const errors = [];
+  
+  // Extract form fields
+  const { name, description, venue, expectedAttendees, eventDate, eventType } = req.body;
+  
+  // Validate name
+  if (!name || typeof name !== 'string') {
+    errors.push({
+      type: 'field',
+      msg: 'Event name is required',
+      path: 'name',
+      location: 'body'
+    });
+  } else if (name.length < 1 || name.length > 255) {
+    errors.push({
+      type: 'field',
+      msg: 'Event name must be between 1 and 255 characters',
+      path: 'name',
+      location: 'body'
+    });
+  }
+  
+  // Validate description (optional)
+  if (description && (typeof description !== 'string' || description.length > 1000)) {
+    errors.push({
+      type: 'field',
+      msg: 'Description must not exceed 1000 characters',
+      path: 'description',
+      location: 'body'
+    });
+  }
+  
+  // Validate venue
+  if (!venue || typeof venue !== 'string') {
+    errors.push({
+      type: 'field',
+      msg: 'Venue is required',
+      path: 'venue',
+      location: 'body'
+    });
+  } else if (venue.length < 1 || venue.length > 255) {
+    errors.push({
+      type: 'field',
+      msg: 'Venue must be between 1 and 255 characters',
+      path: 'venue',
+      location: 'body'
+    });
+  }
+  
+  // Validate expectedAttendees
+  const attendees = parseInt(expectedAttendees);
+  if (!expectedAttendees || isNaN(attendees)) {
+    errors.push({
+      type: 'field',
+      msg: 'Expected attendees is required and must be a number',
+      path: 'expectedAttendees',
+      location: 'body'
+    });
+  } else if (attendees < 1 || attendees > 100000) {
+    errors.push({
+      type: 'field',
+      msg: 'Expected attendees must be between 1 and 100,000',
+      path: 'expectedAttendees',
+      location: 'body'
+    });
+  } else {
+    // Convert to integer for processing
+    req.body.expectedAttendees = attendees;
+  }
+  
+  // Validate eventDate
+  if (!eventDate) {
+    errors.push({
+      type: 'field',
+      msg: 'Event date is required',
+      path: 'eventDate',
+      location: 'body'
+    });
+  } else {
+    const date = new Date(eventDate);
+    if (isNaN(date.getTime())) {
+      errors.push({
+        type: 'field',
+        msg: 'Event date must be a valid ISO 8601 date',
+        path: 'eventDate',
+        location: 'body'
+      });
+    }
+  }
+  
+  // Validate eventType
+  const validTypes = ['CONCERT', 'CONFERENCE', 'SPORTS', 'FESTIVAL', 'OTHER'];
+  if (!eventType) {
+    errors.push({
+      type: 'field',
+      msg: 'Event type is required',
+      path: 'eventType',
+      location: 'body'
+    });
+  } else if (!validTypes.includes(eventType.toUpperCase())) {
+    errors.push({
+      type: 'field',
+      msg: 'Event type must be one of: CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER',
+      path: 'eventType',
+      location: 'body'
+    });
+  } else {
+    // Normalize to uppercase
+    req.body.eventType = eventType.toUpperCase();
+  }
+  
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        status: 'fail',
+        message: 'Validation failed',
+        details: errors
+      },
+      timestamp: new Date().toISOString(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+  }
+  
+  next();
+};
+
+// Validation middleware for JSON requests (backward compatibility)
 const validateCreateEvent = [
   body('name')
     .isString()
@@ -47,28 +195,43 @@ const validateCreateEvent = [
     .isISO8601()
     .withMessage('Event date must be a valid ISO 8601 date'),
   body('eventType')
-    .isIn(['concert', 'conference', 'sports', 'festival', 'other'])
-    .withMessage('Event type must be one of: concert, conference, sports, festival, other'),
-  body('ticketingData')
-    .optional()
-    .isObject()
-    .withMessage('Ticketing data must be an object'),
-  body('seatingChart')
-    .optional()
-    .isObject()
-    .withMessage('Seating chart must be an object')
+    .isIn(['CONCERT', 'CONFERENCE', 'SPORTS', 'FESTIVAL', 'OTHER'])
+    .withMessage('Event type must be one of: CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER')
 ];
 
 /**
  * POST /events
  * Creates a new event with optional file uploads
  */
-router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
-  // Check for validation errors
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    throw new AppError('Validation failed', 400, errors.array());
+router.post('/', upload.fields([
+  { name: 'ticketingData', maxCount: 1 },
+  { name: 'seatingChart', maxCount: 1 }
+]), (req, res, next) => {
+  // Check if this is a multipart request
+  const isMultipart = req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data');
+  
+  if (isMultipart) {
+    // Use multipart validation
+    validateMultipartEventData(req, res, next);
+  } else {
+    // Use JSON validation
+    validateCreateEvent.forEach(validator => validator(req, res, () => {}));
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Validation failed',
+          details: errors.array()
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+    next();
   }
+}, asyncHandler(async (req, res) => {
 
   const {
     name,
@@ -76,9 +239,7 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     venue,
     expectedAttendees,
     eventDate,
-    eventType,
-    ticketingData,
-    seatingChart
+    eventType
   } = req.body;
 
   // Generate unique IDs
@@ -92,26 +253,45 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     const uploadPromises = [];
     const s3Keys = {};
 
-    // Upload ticketing data to S3 if provided
-    if (ticketingData) {
-      const ticketingKey = `events/${eventId}/ticketing-data.json`;
-      uploadPromises.push(
-        s3Service.uploadJson(ticketingKey, ticketingData)
-          .then(() => { s3Keys.ticketingData = ticketingKey; })
-      );
-    }
+    // Handle file uploads from multer
+    if (req.files) {
+      // Upload ticketing data to S3 if provided
+      if (req.files.ticketingData && req.files.ticketingData[0]) {
+        const ticketingFile = req.files.ticketingData[0];
+        const ticketingKey = `events/${eventId}/ticketing-data.${ticketingFile.mimetype === 'text/csv' ? 'csv' : 'json'}`;
+        
+        logger.info('Uploading ticketing data', { eventId, filename: ticketingFile.originalname, size: ticketingFile.size });
+        
+        uploadPromises.push(
+          s3Service.uploadFile(ticketingKey, ticketingFile.buffer, ticketingFile.mimetype)
+            .then(() => { 
+              s3Keys.ticketingData = ticketingKey;
+              logger.info('Ticketing data uploaded successfully', { eventId, key: ticketingKey });
+            })
+        );
+      }
 
-    // Upload seating chart to S3 if provided
-    if (seatingChart) {
-      const seatingKey = `events/${eventId}/seating-chart.json`;
-      uploadPromises.push(
-        s3Service.uploadJson(seatingKey, seatingChart)
-          .then(() => { s3Keys.seatingChart = seatingKey; })
-      );
+      // Upload seating chart to S3 if provided
+      if (req.files.seatingChart && req.files.seatingChart[0]) {
+        const seatingFile = req.files.seatingChart[0];
+        const seatingKey = `events/${eventId}/seating-chart.${seatingFile.mimetype === 'application/json' ? 'json' : 'txt'}`;
+        
+        logger.info('Uploading seating chart', { eventId, filename: seatingFile.originalname, size: seatingFile.size });
+        
+        uploadPromises.push(
+          s3Service.uploadFile(seatingKey, seatingFile.buffer, seatingFile.mimetype)
+            .then(() => { 
+              s3Keys.seatingChart = seatingKey;
+              logger.info('Seating chart uploaded successfully', { eventId, key: seatingKey });
+            })
+        );
+      }
     }
 
     // Wait for all S3 uploads to complete
-    await Promise.all(uploadPromises);
+    if (uploadPromises.length > 0) {
+      await Promise.all(uploadPromises);
+    }
 
     // Create event record in RDS
     const eventData = {
@@ -129,7 +309,7 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
       updatedAt: new Date()
     };
 
-    await rdsService.createEvent(eventData);
+    await supabaseService.createEvent(eventData);
 
     logger.info('Event created successfully', { eventId, simulationId });
 
@@ -176,7 +356,7 @@ router.get('/:eventId', asyncHandler(async (req, res) => {
   logger.info('Retrieving event', { eventId });
 
   try {
-    const event = await rdsService.getEventById(eventId);
+    const event = await supabaseService.getEventById(eventId);
 
     if (!event) {
       throw new AppError('Event not found', 404);
@@ -222,7 +402,7 @@ router.get('/', asyncHandler(async (req, res) => {
   logger.info('Listing events', { page, limit });
 
   try {
-    const { events, total } = await rdsService.getEvents(limit, offset);
+    const { events, total } = await supabaseService.getEvents(limit, offset);
 
     res.status(200).json({
       success: true,
@@ -264,7 +444,7 @@ router.put('/:eventId', validateCreateEvent, asyncHandler(async (req, res) => {
 
   try {
     // Check if event exists
-    const existingEvent = await rdsService.getEventById(eventId);
+    const existingEvent = await supabaseService.getEventById(eventId);
     if (!existingEvent) {
       throw new AppError('Event not found', 404);
     }
@@ -307,7 +487,7 @@ router.put('/:eventId', validateCreateEvent, asyncHandler(async (req, res) => {
       updatedAt: new Date()
     };
 
-    const updatedEvent = await rdsService.updateEvent(eventId, updateData);
+    const updatedEvent = await supabaseService.updateEvent(eventId, updateData);
 
     logger.info('Event updated successfully', { eventId });
 
@@ -341,7 +521,7 @@ router.delete('/:eventId', asyncHandler(async (req, res) => {
 
   try {
     // Get event to find associated S3 keys
-    const event = await rdsService.getEventById(eventId);
+    const event = await supabaseService.getEventById(eventId);
     if (!event) {
       throw new AppError('Event not found', 404);
     }
@@ -352,7 +532,7 @@ router.delete('/:eventId', asyncHandler(async (req, res) => {
     }
 
     // Delete event from RDS
-    await rdsService.deleteEvent(eventId);
+    await supabaseService.deleteEvent(eventId);
 
     logger.info('Event deleted successfully', { eventId });
 

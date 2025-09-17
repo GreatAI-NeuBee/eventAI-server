@@ -1,0 +1,8 @@
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-17T12:10:09.339Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-17T12:10:09.341Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-17T12:10:09.341Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.032Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.387Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.388Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.389Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.613Z"}

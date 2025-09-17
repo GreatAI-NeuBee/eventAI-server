@@ -3,7 +3,7 @@ const axios = require('axios');
 const winston = require('winston');
 
 const s3Service = require('./s3Service');
-const rdsService = require('./rdsService');
+const supabaseService = require('./supabaseService');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -56,7 +56,7 @@ class AIModelService {
       });
 
       // Get event data from RDS
-      const event = await rdsService.getEventById(eventId);
+      const event = await supabaseService.getEventById(eventId);
       if (!event) {
         throw new Error('Event not found');
       }
@@ -65,7 +65,7 @@ class AIModelService {
       const simulationInput = await this.prepareSimulationInput(event, parameters);
 
       // Update progress to 10%
-      await rdsService.updateSimulationProgress(simulationId, {
+      await supabaseService.updateSimulationProgress(simulationId, {
         percentage: 10,
         stage: 'data_preparation',
         message: 'Simulation data prepared'
@@ -164,7 +164,7 @@ class AIModelService {
       logger.info('Running SageMaker simulation', { simulationId, endpointName: this.endpointName });
 
       // Update progress
-      await rdsService.updateSimulationProgress(simulationId, {
+      await supabaseService.updateSimulationProgress(simulationId, {
         percentage: 25,
         stage: 'model_inference',
         message: 'Starting AI model inference'
@@ -180,7 +180,7 @@ class AIModelService {
       const results = JSON.parse(Buffer.from(response.Body).toString());
 
       // Update progress
-      await rdsService.updateSimulationProgress(simulationId, {
+      await supabaseService.updateSimulationProgress(simulationId, {
         percentage: 90,
         stage: 'processing_results',
         message: 'Processing simulation results'
@@ -205,7 +205,7 @@ class AIModelService {
       logger.info('Running custom API simulation', { simulationId, apiUrl: this.modelApiUrl });
 
       // Update progress
-      await rdsService.updateSimulationProgress(simulationId, {
+      await supabaseService.updateSimulationProgress(simulationId, {
         percentage: 25,
         stage: 'api_call',
         message: 'Calling AI model API'
@@ -220,7 +220,7 @@ class AIModelService {
       });
 
       // Update progress
-      await rdsService.updateSimulationProgress(simulationId, {
+      await supabaseService.updateSimulationProgress(simulationId, {
         percentage: 90,
         stage: 'processing_results',
         message: 'Processing simulation results'
@@ -254,7 +254,7 @@ class AIModelService {
 
       for (const step of progressSteps) {
         await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
-        await rdsService.updateSimulationProgress(simulationId, step);
+        await supabaseService.updateSimulationProgress(simulationId, step);
       }
 
       // Generate mock results based on input data

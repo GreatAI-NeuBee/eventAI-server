@@ -1,17 +1,18 @@
 # Event AI Server
 
-A serverless Node.js backend for the Event AI platform, built with AWS Lambda, API Gateway, and modern cloud architecture. This server handles event management, AI-powered crowd simulation, and real-time notifications.
+A Node.js backend for the Event AI platform, built for AWS EC2 deployment with S3 storage and Supabase database. This server handles event management, AI-powered crowd simulation, and real-time notifications.
 
 ## 🏗️ Architecture
 
-The server follows a serverless architecture using AWS services:
+The server follows a modern cloud architecture using AWS and Supabase:
 
-- **AWS Lambda**: Serverless compute for the Node.js application
-- **Amazon API Gateway**: REST API endpoints and routing
+- **AWS EC2**: Virtual server hosting the Node.js application
+- **Express.js**: Web application framework with REST API endpoints
 - **Amazon S3**: File storage for datasets and charts
-- **Amazon RDS (PostgreSQL)**: Event and simulation data storage
+- **Supabase (PostgreSQL)**: Event and simulation data storage
 - **Amazon SageMaker**: AI model inference endpoint
 - **n8n Webhook**: WhatsApp notification integration
+- **PM2**: Process management for production deployment
 
 ## 🚀 Features
 
@@ -23,7 +24,7 @@ The server follows a serverless architecture using AWS services:
 - **Comprehensive Logging**: Winston-based logging with request tracking
 - **Error Handling**: Centralized error handling with proper HTTP status codes
 - **Security**: Rate limiting, CORS, security headers, and input validation
-- **Database**: Prisma ORM with PostgreSQL for data persistence
+- **Database**: Supabase PostgreSQL for data persistence with real-time features
 
 ## 📁 Project Structure
 
@@ -35,16 +36,19 @@ event-ai-server/
 │   │   └── simulationController.js  # Simulation management endpoints
 │   ├── services/
 │   │   ├── s3Service.js            # AWS S3 file operations
-│   │   ├── rdsService.js           # Database operations with Prisma
+│   │   ├── supabaseService.js      # Database operations with Supabase
 │   │   ├── aiModelService.js       # AI model integration
 │   │   └── notificationService.js  # WhatsApp/n8n notifications
 │   ├── utils/
 │   │   └── errorHandler.js         # Error handling utilities
-│   └── handler.js                  # Main Lambda handler
-├── prisma/
-│   └── schema.prisma              # Database schema
+│   └── server.js                   # Main Express server
+├── supabase/
+│   └── schema.sql                  # Database schema
+├── scripts/
+│   ├── setup-s3.js               # S3 bucket configuration
+│   └── setup-supabase.js         # Supabase setup and testing
 ├── package.json                   # Dependencies and scripts
-├── serverless.yml                # Serverless Framework configuration
+├── ecosystem.config.js           # PM2 configuration
 └── env.example                   # Environment variables template
 ```
 
