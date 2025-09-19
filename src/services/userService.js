@@ -44,11 +44,11 @@ class UserService {
     try {
       logger.info('Creating user', { email: userData.email });
 
-      // Prepare user data - username defaults to email
+      // Prepare user data - username can come from OAuth provider or default to email
       const userRecord = {
         user_id: userData.userId,
         email: userData.email.toLowerCase(),
-        username: userData.username || userData.email.toLowerCase(), // Use email as username if not provided
+        username: userData.username || userData.email.toLowerCase(), // Use provided username (e.g., from Google) or email as fallback
         status: userData.status || 'ACTIVE',
         phone: userData.phone || null
       };
@@ -81,6 +81,119 @@ class UserService {
       
       throw new Error(`Failed to create user: ${error.message}`);
     }
+  }
+
+  /**
+   * Creates a user from OAuth provider data (Google, etc.)
+   * @param {Object} oauthData - OAuth provider data
+   * @returns {Promise<Object>} - Created user
+   */
+  async createUserFromOAuth(oauthData) {
+    try {
+      logger.info('Creating user from OAuth', { 
+        email: oauthData.email, 
+        provider: oauthData.provider,
+        providerId: oauthData.providerId 
+      });
+
+      // Generate unique user ID
+      const userId = `usr_${require('uuid').v4()}`;
+
+      // Prepare user data with OAuth information
+      const userRecord = {
+        user_id: userId,
+        email: oauthData.email.toLowerCase(),
+        username: this.generateUsernameFromOAuth(oauthData),
+        status: oauthData.status || 'ACTIVE',
+        phone: oauthData.phone || null
+      };
+
+      const { data: user, error } = await this.client
+        .from('users')
+        .insert(userRecord)
+        .select(`
+          id, user_id, email, username, status, phone, created_at, updated_at
+        `)
+        .single();
+
+      if (error) throw error;
+
+      logger.info('OAuth user created successfully', { 
+        userId, 
+        email: oauthData.email,
+        username: userRecord.username,
+        provider: oauthData.provider 
+      });
+      
+      return this.convertUserToCamelCase(user);
+    } catch (error) {
+      logger.error('Error creating OAuth user', { 
+        email: oauthData.email, 
+        provider: oauthData.provider,
+        error: error.message 
+      });
+      
+      // Handle duplicate key errors
+      if (error.code === '23505') {
+        if (error.message.includes('email')) {
+          throw new Error('Email already exists');
+        } else if (error.message.includes('username')) {
+          throw new Error('Username already exists');
+        }
+      }
+      
+      throw new Error(`Failed to create OAuth user: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generates username from OAuth provider data
+   * @param {Object} oauthData - OAuth provider data
+   * @returns {string} - Generated username
+   */
+  generateUsernameFromOAuth(oauthData) {
+    // Priority order for username generation:
+    // 1. Explicit username from provider
+    // 2. Display name from provider (cleaned)
+    // 3. Name from provider (cleaned)
+    // 4. Email as fallback
+
+    if (oauthData.username) {
+      return this.sanitizeUsername(oauthData.username);
+    }
+
+    if (oauthData.displayName) {
+      return this.sanitizeUsername(oauthData.displayName);
+    }
+
+    if (oauthData.name) {
+      return this.sanitizeUsername(oauthData.name);
+    }
+
+    if (oauthData.given_name && oauthData.family_name) {
+      return this.sanitizeUsername(`${oauthData.given_name} ${oauthData.family_name}`);
+    }
+
+    if (oauthData.given_name) {
+      return this.sanitizeUsername(oauthData.given_name);
+    }
+
+    // Fallback to email
+    return oauthData.email.toLowerCase();
+  }
+
+  /**
+   * Sanitizes username for database storage
+   * @param {string} username - Raw username
+   * @returns {string} - Sanitized username
+   */
+  sanitizeUsername(username) {
+    return username
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '_')           // Replace spaces with underscores
+      .replace(/[^a-z0-9._-]/g, '')   // Remove special characters except ._-
+      .substring(0, 50);              // Limit length
   }
 
   /**

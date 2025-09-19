@@ -139,6 +139,115 @@ router.post('/', validateCreateUser, asyncHandler(async (req, res) => {
 }));
 
 /**
+ * POST /users/oauth
+ * Creates a user from OAuth provider data (Google, etc.)
+ */
+router.post('/oauth', [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Valid email is required'),
+  body('provider')
+    .isString()
+    .isIn(['google', 'facebook', 'github', 'linkedin'])
+    .withMessage('Provider must be one of: google, facebook, github, linkedin'),
+  body('providerId')
+    .isString()
+    .notEmpty()
+    .withMessage('Provider ID is required'),
+  body('username')
+    .optional()
+    .isString()
+    .withMessage('Username must be a string'),
+  body('displayName')
+    .optional()
+    .isString()
+    .withMessage('Display name must be a string'),
+  body('name')
+    .optional()
+    .isString()
+    .withMessage('Name must be a string'),
+  body('given_name')
+    .optional()
+    .isString()
+    .withMessage('Given name must be a string'),
+  body('family_name')
+    .optional()
+    .isString()
+    .withMessage('Family name must be a string'),
+  body('status')
+    .optional()
+    .isIn(['ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING'])
+    .withMessage('Status must be one of: ACTIVE, INACTIVE, SUSPENDED, PENDING'),
+  body('phone')
+    .optional()
+    .matches(/^\+?[1-9]\d{1,14}$/)
+    .withMessage('Phone must be a valid international format')
+], asyncHandler(async (req, res) => {
+  // Check for validation errors
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        status: 'fail',
+        message: 'Validation failed',
+        details: errors.array()
+      },
+      timestamp: new Date().toISOString(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+  }
+
+  const oauthData = req.body;
+
+  logger.info('Creating OAuth user', { 
+    email: oauthData.email, 
+    provider: oauthData.provider,
+    displayName: oauthData.displayName 
+  });
+
+  try {
+    const user = await userService.createUserFromOAuth(oauthData);
+
+    logger.info('OAuth user created successfully', { 
+      userId: user.userId, 
+      email: oauthData.email,
+      username: user.username,
+      provider: oauthData.provider 
+    });
+
+    res.status(201).json({
+      success: true,
+      data: user,
+      message: 'OAuth user created successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error creating OAuth user', { 
+      email: oauthData.email, 
+      provider: oauthData.provider,
+      error: error.message 
+    });
+    
+    if (error.message.includes('already exists')) {
+      return res.status(409).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: error.message,
+          code: 'DUPLICATE_RESOURCE'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+    
+    throw new AppError('Failed to create OAuth user', 500, error.message);
+  }
+}));
+
+/**
  * GET /users
  * Retrieves all users with pagination and filtering
  */
