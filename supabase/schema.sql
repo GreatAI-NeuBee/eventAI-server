@@ -5,6 +5,23 @@
 CREATE TYPE event_type AS ENUM ('CONCERT', 'CONFERENCE', 'SPORTS', 'FESTIVAL', 'OTHER');
 CREATE TYPE event_status AS ENUM ('CREATED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
 CREATE TYPE simulation_status AS ENUM ('PENDING', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED');
+CREATE TYPE user_status AS ENUM ('ACTIVE', 'INACTIVE', 'SUSPENDED', 'PENDING');
+
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id BIGSERIAL PRIMARY KEY,
+    user_id VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    username VARCHAR(255) UNIQUE NOT NULL, -- Will be same as email initially
+    status user_status DEFAULT 'ACTIVE',
+    phone VARCHAR(20),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Constraints
+    CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'),
+    CONSTRAINT valid_phone CHECK (phone IS NULL OR phone ~* '^\+?[1-9]\d{1,14}$')
+);
 
 -- Create events table
 CREATE TABLE IF NOT EXISTS events (
@@ -48,6 +65,12 @@ CREATE TABLE IF NOT EXISTS simulations (
 );
 
 -- Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_users_user_id ON users(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at DESC);
+
 CREATE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id);
 CREATE INDEX IF NOT EXISTS idx_events_simulation_id ON events(simulation_id);
 CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC);
@@ -69,6 +92,11 @@ END;
 $$ language 'plpgsql';
 
 -- Create triggers to automatically update updated_at
+CREATE TRIGGER update_users_updated_at 
+    BEFORE UPDATE ON users 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
 CREATE TRIGGER update_events_updated_at 
     BEFORE UPDATE ON events 
     FOR EACH ROW 
@@ -80,11 +108,18 @@ CREATE TRIGGER update_simulations_updated_at
     EXECUTE FUNCTION update_updated_at_column();
 
 -- Enable Row Level Security (RLS)
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE simulations ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for authenticated users
 -- Allow all operations for authenticated users (you can customize this based on your needs)
+CREATE POLICY "Allow all operations for authenticated users on users" 
+    ON users FOR ALL 
+    TO authenticated 
+    USING (true) 
+    WITH CHECK (true);
+
 CREATE POLICY "Allow all operations for authenticated users on events" 
     ON events FOR ALL 
     TO authenticated 
@@ -98,6 +133,12 @@ CREATE POLICY "Allow all operations for authenticated users on simulations"
     WITH CHECK (true);
 
 -- Create policies for service role (for server-side operations)
+CREATE POLICY "Allow all operations for service role on users" 
+    ON users FOR ALL 
+    TO service_role 
+    USING (true) 
+    WITH CHECK (true);
+
 CREATE POLICY "Allow all operations for service role on events" 
     ON events FOR ALL 
     TO service_role 
@@ -143,19 +184,35 @@ GROUP BY s.status;
 --     'FESTIVAL'
 -- );
 
+-- Create user statistics view
+CREATE OR REPLACE VIEW user_statistics AS
+SELECT 
+    COUNT(*) as total_users,
+    COUNT(CASE WHEN status = 'ACTIVE' THEN 1 END) as active_users,
+    COUNT(CASE WHEN status = 'INACTIVE' THEN 1 END) as inactive_users,
+    COUNT(CASE WHEN status = 'SUSPENDED' THEN 1 END) as suspended_users,
+    COUNT(CASE WHEN status = 'PENDING' THEN 1 END) as pending_users,
+    COUNT(CASE WHEN phone IS NOT NULL THEN 1 END) as users_with_phone
+FROM users;
+
 -- Grant necessary permissions
 GRANT USAGE ON SCHEMA public TO postgres, anon, authenticated, service_role;
+GRANT ALL ON TABLE users TO postgres, service_role;
 GRANT ALL ON TABLE events TO postgres, service_role;
 GRANT ALL ON TABLE simulations TO postgres, service_role;
+GRANT SELECT ON TABLE users TO anon, authenticated;
 GRANT SELECT ON TABLE events TO anon, authenticated;
 GRANT SELECT ON TABLE simulations TO anon, authenticated;
+GRANT SELECT ON TABLE user_statistics TO anon, authenticated, service_role;
 GRANT SELECT ON TABLE event_statistics TO anon, authenticated, service_role;
 GRANT SELECT ON TABLE simulation_statistics TO anon, authenticated, service_role;
 
 -- Grant sequence permissions
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO postgres, service_role;
 
+COMMENT ON TABLE users IS 'Stores user accounts and profiles for the Event AI system';
 COMMENT ON TABLE events IS 'Stores event information for the Event AI system';
 COMMENT ON TABLE simulations IS 'Stores simulation data and results for events';
+COMMENT ON VIEW user_statistics IS 'Provides statistical overview of users';
 COMMENT ON VIEW event_statistics IS 'Provides statistical overview of events';
 COMMENT ON VIEW simulation_statistics IS 'Provides statistical overview of simulations';

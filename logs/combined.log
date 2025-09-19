@@ -6,3 +6,152 @@
 {"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.388Z"}
 {"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.389Z"}
 {"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-17T12:10:10.613Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:49:38.986Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:49:38.987Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:49:38.987Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:49:39.635Z"}
+{"ip":"127.0.0.1","level":"info","message":"GET /health","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:49:47.772Z","userAgent":"curl/8.7.1"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:49:59.480Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:49:59.481Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:49:59.481Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:49:59.935Z"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:14.689Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:16.755Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:21.602Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /.well-known/appspecific/com.chrome.devtools.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:21.606Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:23.588Z","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /.well-known/appspecific/com.chrome.devtools.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:23.617Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:25.770Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:50.333Z","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /.well-known/appspecific/com.chrome.devtools.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:50.433Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:51:52.369Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:52:16.755Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:52:18.645Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:52:21.564Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /.well-known/appspecific/com.chrome.devtools.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:52:21.587Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"event-ai-server","timestamp":"2025-09-19T04:52:43.611Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:53:08.713Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:53:08.715Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:53:08.715Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:53:09.323Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:53:41.664Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:53:41.665Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:53:41.666Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:53:42.255Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:53:58.779Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:53:58.780Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:53:58.780Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:53:59.184Z"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:54:09.988Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs-simple","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:54:14.729Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api/v1/users/statistics","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:54:20.217Z","userAgent":"curl/8.7.1"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:54:51.850Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:54:51.851Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:54:51.851Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:54:52.565Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:55:02.114Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:55:02.116Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:55:02.116Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:55:02.451Z"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api/v1/users/statistics","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:06.588Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"POST /api/v1/users","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:13.290Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api/v1/users/statistics","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:18.284Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:18.503Z","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /.well-known/appspecific/com.chrome.devtools.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:18.565Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:19.881Z","userAgent":"Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T04:55:21.637Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T04:55:42.947Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T04:55:42.949Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T04:55:42.949Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T04:55:43.096Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:34:24.881Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:34:24.885Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:34:24.885Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:34:25.720Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:34:56.327Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:34:56.328Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:34:56.329Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:34:56.562Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:03.885Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:03.887Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:03.900Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:04.301Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:10.157Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:10.158Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:10.158Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:10.484Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:18.735Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:18.737Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:18.737Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:18.912Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:27.408Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:27.410Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:27.410Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:27.555Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:38.425Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:38.427Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:38.427Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:38.605Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:45.275Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:45.276Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:45.276Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:45.499Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:35:56.021Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:35:56.022Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:35:56.022Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:35:56.221Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:03.936Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:03.940Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:03.941Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:04.152Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:12.518Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:12.519Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:12.519Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:12.938Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:19.931Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:19.933Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:19.933Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:20.470Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:39.452Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:39.454Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:39.454Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:39.573Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:51.473Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:51.476Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:51.476Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:51.727Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:36:57.376Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:36:57.378Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:36:57.378Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:36:57.707Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:37:02.998Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:37:03.000Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:37:03.000Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:37:03.202Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:37:11.663Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:37:11.665Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:37:11.666Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:37:11.948Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:37:27.297Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:37:27.299Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:37:27.299Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:37:27.602Z"}
+{"level":"info","message":"SIGTERM received, shutting down gracefully","service":"event-ai-server","timestamp":"2025-09-19T05:38:45.993Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:38:52.548Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:38:52.550Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:38:52.550Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:38:53.003Z"}
+{"ip":"127.0.0.1","level":"info","message":"POST /api/v1/users","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:38:58.963Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"POST /api/v1/users","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:39:05.442Z","userAgent":"curl/8.7.1"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs-simple","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:39:12.561Z","userAgent":"curl/8.7.1"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:40:04.395Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:40:04.396Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:40:04.396Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:40:04.646Z"}
+{"level":"info","message":"Event AI Server running on port 3000","service":"event-ai-server","timestamp":"2025-09-19T05:42:21.584Z"}
+{"level":"info","message":"Environment: development","service":"event-ai-server","timestamp":"2025-09-19T05:42:21.585Z"}
+{"level":"info","message":"Health check available at: http://localhost:3000/health","service":"event-ai-server","timestamp":"2025-09-19T05:42:21.585Z"}
+{"level":"info","message":"✅ Supabase connection successful","service":"event-ai-server","timestamp":"2025-09-19T05:42:23.804Z"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs/","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:44:23.651Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /api-docs.json","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:44:24.239Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}
+{"ip":"127.0.0.1","level":"info","message":"GET /sw.js","requestId":"unknown","service":"event-ai-server","timestamp":"2025-09-19T05:44:25.925Z","userAgent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"}

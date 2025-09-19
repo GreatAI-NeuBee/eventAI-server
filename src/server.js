@@ -13,6 +13,7 @@ require('dotenv').config();
 // Import controllers
 const eventController = require('./controllers/eventController');
 const simulationController = require('./controllers/simulationController');
+const userController = require('./controllers/userController');
 
 // Import middleware
 const errorHandler = require('./utils/errorHandler');
@@ -52,10 +53,12 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "data:"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "data:", "https://unpkg.com"],
+      styleSrcElem: ["'self'", "'unsafe-inline'", "data:", "https://unpkg.com"], // Explicitly allow external stylesheets
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"],
+      scriptSrcElem: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://unpkg.com"], // Explicitly allow external scripts
       imgSrc: ["'self'", "data:", "https:", "http:"],
-      fontSrc: ["'self'", "data:"],
+      fontSrc: ["'self'", "data:", "https://unpkg.com"], // Allow fonts from unpkg
       connectSrc: ["'self'", "http:", "https:"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
@@ -172,7 +175,11 @@ const swaggerOptions = {
 };
 
 // Custom Swagger UI that forces HTTP for EC2
-app.get('/api-docs', (req, res) => {
+app.get('/api-docs', (req, res, next) => {
+  // Disable CSP for this endpoint to allow external resources
+  res.setHeader('Content-Security-Policy', '');
+  next();
+}, (req, res) => {
   const serverUrl = getServerUrl(req);
   const dynamicSwaggerDocument = { 
     ...swaggerDocument, 
@@ -199,35 +206,56 @@ app.get('/api-docs', (req, res) => {
       <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-bundle.js"></script>
       <script src="https://unpkg.com/swagger-ui-dist@4.15.5/swagger-ui-standalone-preset.js"></script>
       <script>
+        // Add loading indicator
+        document.body.innerHTML = '<div style="text-align:center;padding:50px;font-family:Arial,sans-serif;"><h2>Loading Swagger UI...</h2><p>If this takes too long, try <a href="${serverUrl}/api-docs-simple">Simple API Documentation</a></p></div>' + document.body.innerHTML;
+        
         window.onload = function() {
-          const ui = SwaggerUIBundle({
-            url: '${serverUrl}/api-docs.json',
-            dom_id: '#swagger-ui',
-            deepLinking: true,
-            presets: [
-              SwaggerUIBundle.presets.apis,
-              SwaggerUIStandalonePreset
-            ],
-            plugins: [
-              SwaggerUIBundle.plugins.DownloadUrl
-            ],
-            layout: "StandaloneLayout",
-            validatorUrl: null,
-            // Force HTTP for all requests
-            requestInterceptor: function(request) {
-              // Force HTTP for EC2 deployment
-              if (request.url.startsWith('https://43.216.157.151')) {
-                request.url = request.url.replace('https://', 'http://');
+          try {
+            if (typeof SwaggerUIBundle === 'undefined') {
+              throw new Error('SwaggerUIBundle not loaded');
+            }
+            
+            const ui = SwaggerUIBundle({
+              url: '${serverUrl}/api-docs.json',
+              dom_id: '#swagger-ui',
+              deepLinking: true,
+              presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+              ],
+              plugins: [
+                SwaggerUIBundle.plugins.DownloadUrl
+              ],
+              layout: "StandaloneLayout",
+              validatorUrl: null,
+              requestInterceptor: function(request) {
+                if (request.url.startsWith('https://43.216.157.151')) {
+                  request.url = request.url.replace('https://', 'http://');
+                }
+                return request;
+              },
+              supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+              tryItOutEnabled: true,
+              filter: true,
+              showRequestHeaders: true,
+              onComplete: function() {
+                // Remove loading indicator
+                const loading = document.querySelector('div[style*="Loading Swagger UI"]');
+                if (loading) loading.remove();
               }
-              return request;
-            },
-            // Custom configuration for EC2
-            supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
-            tryItOutEnabled: true,
-            filter: true,
-            showRequestHeaders: true
-          });
+            });
+          } catch (error) {
+            console.error('Swagger UI failed to load:', error);
+            document.body.innerHTML = '<div style="text-align:center;padding:50px;font-family:Arial,sans-serif;color:red;"><h2>Failed to load Swagger UI</h2><p>External resources could not be loaded. Please use <a href="${serverUrl}/api-docs-simple">Simple API Documentation</a> instead.</p><p>Error: ' + error.message + '</p></div>';
+          }
         };
+        
+        // Fallback timeout
+        setTimeout(function() {
+          if (document.querySelector('div[style*="Loading Swagger UI"]')) {
+            document.body.innerHTML = '<div style="text-align:center;padding:50px;font-family:Arial,sans-serif;color:orange;"><h2>Swagger UI Loading Timeout</h2><p>External resources are taking too long to load. Please use <a href="${serverUrl}/api-docs-simple">Simple API Documentation</a> instead.</p></div>';
+          }
+        }, 10000);
       </script>
     </body>
     </html>
@@ -282,6 +310,40 @@ app.get('/api-docs-simple', (req, res) => {
         <p>Server health check and metrics</p>
       </div>
       
+      <h3>👥 User Management</h3>
+      
+      <div class="endpoint">
+        <span class="method post">POST</span> <code>/api/v1/users</code>
+        <p>Create a new user account</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/users</code>
+        <p>List all users (paginated, with filtering)</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/users/{userId}</code>
+        <p>Get specific user by ID</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method put">PUT</span> <code>/api/v1/users/{userId}</code>
+        <p>Update existing user</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method delete">DELETE</span> <code>/api/v1/users/{userId}</code>
+        <p>Delete user account</p>
+      </div>
+      
+      <div class="endpoint">
+        <span class="method get">GET</span> <code>/api/v1/users/statistics</code>
+        <p>Get user statistics and analytics</p>
+      </div>
+      
+      <h3>🎪 Event Management</h3>
+      
       <div class="endpoint">
         <span class="method post">POST</span> <code>/api/v1/events</code>
         <p>Create a new event (supports JSON and multipart form data)</p>
@@ -330,7 +392,12 @@ app.get('/api-docs-simple', (req, res) => {
       <h2>🧪 Quick Test</h2>
       <p>Test the API with curl:</p>
       <pre><code>curl ${serverUrl}/health</code></pre>
-      <pre><code>curl -X POST ${serverUrl}/api/v1/events \\
+      <pre><code># Create a user
+curl -X POST ${serverUrl}/api/v1/users \\
+  -H "Content-Type: application/json" \\
+  -d '{"email":"test@example.com","username":"testuser","firstName":"Test","lastName":"User","password":"SecurePass123!","role":"VIEWER"}'</code></pre>
+      <pre><code># Create an event
+curl -X POST ${serverUrl}/api/v1/events \\
   -H "Content-Type: application/json" \\
   -d '{"name":"Test Event","venue":"Test Venue","expectedAttendees":100,"eventDate":"2024-12-31T20:00:00Z","eventType":"CONCERT"}'</code></pre>
       
@@ -394,6 +461,7 @@ app.get('/postman-guide', (req, res) => {
 });
 
 // API routes
+app.use('/api/v1/users', userController);
 app.use('/api/v1/events', eventController);
 app.use('/api/v1/simulations', simulationController);
 
@@ -411,6 +479,7 @@ app.get('/', (req, res) => {
     },
     endpoints: {
       health: `${req.protocol}://${req.get('host')}/health`,
+      users: `${req.protocol}://${req.get('host')}/api/v1/users`,
       events: `${req.protocol}://${req.get('host')}/api/v1/events`,
       simulations: `${req.protocol}://${req.get('host')}/api/v1/simulations`
     }
