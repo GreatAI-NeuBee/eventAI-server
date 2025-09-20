@@ -43,6 +43,18 @@ const validateCreateEvent = [
     .isLength({ min: 1, max: 255 })
     .trim()
     .withMessage('Event name is required and must be 1-255 characters'),
+  body('description')
+    .optional()
+    .isString()
+    .isLength({ max: 5000 })
+    .trim()
+    .withMessage('Description must be a string with max 5000 characters'),
+  body('venue')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 255 })
+    .trim()
+    .withMessage('Venue must be 1-255 characters'),
   body('dateOfEventStart')
     .isISO8601()
     .withMessage('Event start date must be a valid ISO 8601 date'),
@@ -50,6 +62,10 @@ const validateCreateEvent = [
     .isISO8601()
     .withMessage('Event end date must be a valid ISO 8601 date')
     .custom(validateDateRange),
+  body('status')
+    .optional()
+    .isIn(['CREATED', 'ACTIVE', 'COMPLETED', 'CANCELLED'])
+    .withMessage('Status must be one of: CREATED, ACTIVE, COMPLETED, CANCELLED'),
   body('venueLayout')
     .optional()
     .isObject()
@@ -68,6 +84,18 @@ const validateUpdateEvent = [
     .isLength({ min: 1, max: 255 })
     .trim()
     .withMessage('Event name must be 1-255 characters'),
+  body('description')
+    .optional()
+    .isString()
+    .isLength({ max: 5000 })
+    .trim()
+    .withMessage('Description must be a string with max 5000 characters'),
+  body('venue')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 255 })
+    .trim()
+    .withMessage('Venue must be 1-255 characters'),
   body('dateOfEventStart')
     .optional()
     .isISO8601()
@@ -83,6 +111,10 @@ const validateUpdateEvent = [
       }
       return true;
     }),
+  body('status')
+    .optional()
+    .isIn(['CREATED', 'ACTIVE', 'COMPLETED', 'CANCELLED'])
+    .withMessage('Status must be one of: CREATED, ACTIVE, COMPLETED, CANCELLED'),
   body('venueLayout')
     .optional()
     .isObject()
@@ -114,7 +146,7 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     });
   }
 
-  const { name, dateOfEventStart, dateOfEventEnd, venueLayout, userEmail } = req.body;
+  const { name, description, venue, dateOfEventStart, dateOfEventEnd, status, venueLayout, userEmail } = req.body;
   const eventId = `evt_${uuidv4()}`;
 
   logger.info('Creating new event', { eventId, name });
@@ -123,8 +155,11 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     const eventData = {
       eventId,
       name,
+      description,
+      venue,
       dateOfEventStart,
       dateOfEventEnd,
+      status,
       venueLayout,
       userEmail
     };
@@ -162,6 +197,17 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
 /**
  * GET /events
  * Retrieves all events with pagination and filtering
+ * 
+ * Query Parameters:
+ * - userEmail: Filter events by creator email (optional)
+ * - myEvents: If true, filter by authenticated user's email (optional)
+ * - upcoming/past/ongoing: Filter by event status (optional)
+ * - withForecast: Filter events with forecast data (optional)
+ * - search: Search in event names (optional)
+ * - startDate/endDate: Filter by date range (optional)
+ * 
+ * Headers:
+ * - x-user-email: User's email for authentication context (optional)
  */
 router.get('/', asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -169,7 +215,32 @@ router.get('/', asyncHandler(async (req, res) => {
   const offset = (page - 1) * limit;
 
   const filters = {};
-  if (req.query.userEmail) filters.userEmail = req.query.userEmail;
+  
+  // Handle user email filtering
+  if (req.query.userEmail) {
+    // Explicit user email provided in query
+    filters.userEmail = req.query.userEmail;
+  } else if (req.query.myEvents === 'true') {
+    // Filter by authenticated user's email from header
+    const userEmail = req.headers['x-user-email'] || req.headers['user-email'];
+    if (userEmail) {
+      filters.userEmail = userEmail;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'User email required for myEvents filter',
+          code: 'MISSING_USER_EMAIL',
+          details: 'To use myEvents=true, provide user email in x-user-email header or userEmail query parameter'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+  }
+  
+  // Other filters
   if (req.query.upcoming === 'true') filters.upcoming = true;
   if (req.query.past === 'true') filters.past = true;
   if (req.query.ongoing === 'true') filters.ongoing = true;
@@ -177,8 +248,10 @@ router.get('/', asyncHandler(async (req, res) => {
   if (req.query.search) filters.search = req.query.search;
   if (req.query.startDate) filters.startDate = req.query.startDate;
   if (req.query.endDate) filters.endDate = req.query.endDate;
+  if (req.query.status) filters.status = req.query.status;
+  if (req.query.venue) filters.venue = req.query.venue;
 
-  logger.info('Retrieving events', { page, limit, filters });
+  logger.info('Retrieving events', { page, limit, filters, requestedBy: filters.userEmail || 'anonymous' });
 
   try {
     const result = await eventService.getEvents(limit, offset, filters);
@@ -191,6 +264,11 @@ router.get('/', asyncHandler(async (req, res) => {
       success: true,
       data: {
         events: result.events,
+        filters: {
+          userEmail: filters.userEmail || null,
+          isMyEvents: !!req.query.myEvents,
+          appliedFilters: Object.keys(filters).filter(key => filters[key] !== undefined)
+        },
         pagination: {
           currentPage: page,
           totalPages,
@@ -248,6 +326,8 @@ router.get('/user/:userEmail', asyncHandler(async (req, res) => {
   if (req.query.search) additionalFilters.search = req.query.search;
   if (req.query.startDate) additionalFilters.startDate = req.query.startDate;
   if (req.query.endDate) additionalFilters.endDate = req.query.endDate;
+  if (req.query.status) additionalFilters.status = req.query.status;
+  if (req.query.venue) additionalFilters.venue = req.query.venue;
 
   logger.info('Retrieving events by user', { userEmail, page, limit, additionalFilters });
 

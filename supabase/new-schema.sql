@@ -20,13 +20,19 @@ CREATE TABLE IF NOT EXISTS users (
     CONSTRAINT valid_phone CHECK (phone IS NULL OR phone ~* '^\+?[1-9]\d{1,14}$')
 );
 
+-- Create event status enum
+CREATE TYPE event_status AS ENUM ('CREATED', 'ACTIVE', 'COMPLETED', 'CANCELLED');
+
 -- Create events table (main event information)
 CREATE TABLE IF NOT EXISTS events (
     id BIGSERIAL PRIMARY KEY,
     event_id VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
+    description TEXT,
+    venue VARCHAR(255),
     date_of_event_start TIMESTAMPTZ NOT NULL,
     date_of_event_end TIMESTAMPTZ NOT NULL,
+    status event_status DEFAULT 'CREATED',
     venue_layout JSONB, -- Store venue layout configuration
     user_email VARCHAR(255) NOT NULL, -- Email of user who created the event
     forecast_result JSONB, -- Store forecasted crowd predictions
@@ -151,6 +157,8 @@ CREATE INDEX IF NOT EXISTS idx_events_event_id ON events(event_id);
 CREATE INDEX IF NOT EXISTS idx_events_date_of_event_start ON events(date_of_event_start);
 CREATE INDEX IF NOT EXISTS idx_events_date_of_event_end ON events(date_of_event_end);
 CREATE INDEX IF NOT EXISTS idx_events_user_email ON events(user_email);
+CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
+CREATE INDEX IF NOT EXISTS idx_events_venue ON events(venue);
 CREATE INDEX IF NOT EXISTS idx_events_venue_layout ON events USING GIN (venue_layout);
 CREATE INDEX IF NOT EXISTS idx_events_created_at ON events(created_at DESC);
 

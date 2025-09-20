@@ -48,8 +48,11 @@ class EventService {
       const eventRecord = {
         event_id: eventData.eventId,
         name: eventData.name,
+        description: eventData.description || null,
+        venue: eventData.venue || null,
         date_of_event_start: eventData.dateOfEventStart,
         date_of_event_end: eventData.dateOfEventEnd,
+        status: eventData.status || 'CREATED',
         venue_layout: eventData.venueLayout || null,
         user_email: eventData.userEmail,
         forecast_result: null // Will be populated by forecast service
@@ -59,7 +62,7 @@ class EventService {
         .from('events')
         .insert(eventRecord)
         .select(`
-          id, event_id, name, date_of_event_start, date_of_event_end, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
         `)
         .single();
 
@@ -91,7 +94,7 @@ class EventService {
       const { data: event, error } = await this.client
         .from('events')
         .select(`
-          id, event_id, name, date_of_event_start, date_of_event_end, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
         `)
         .eq('event_id', eventId)
         .single();
@@ -124,45 +127,49 @@ class EventService {
     try {
       logger.info('Retrieving events with pagination', { limit, offset, filters });
 
-      let query = this.client.from('events');
-
-      // Apply filters
+      // Get total count first (with filters applied)
+      let countQuery = this.client.from('events').select('*', { count: 'exact', head: true });
+      
+      // Apply filters to count query
       if (filters.userEmail) {
-        query = query.eq('user_email', filters.userEmail);
+        countQuery = countQuery.eq('user_email', filters.userEmail);
       }
       if (filters.upcoming) {
-        query = query.gte('date_of_event_start', new Date().toISOString());
+        countQuery = countQuery.gte('date_of_event_start', new Date().toISOString());
       }
       if (filters.past) {
-        query = query.lt('date_of_event_end', new Date().toISOString());
+        countQuery = countQuery.lt('date_of_event_end', new Date().toISOString());
       }
       if (filters.ongoing) {
         const now = new Date().toISOString();
-        query = query.lte('date_of_event_start', now).gte('date_of_event_end', now);
+        countQuery = countQuery.lte('date_of_event_start', now).gte('date_of_event_end', now);
       }
       if (filters.withForecast) {
-        query = query.not('forecast_result', 'is', null);
+        countQuery = countQuery.not('forecast_result', 'is', null);
       }
       if (filters.search) {
-        query = query.ilike('name', `%${filters.search}%`);
+        countQuery = countQuery.ilike('name', `%${filters.search}%`);
       }
       if (filters.startDate) {
-        query = query.gte('date_of_event_start', filters.startDate);
+        countQuery = countQuery.gte('date_of_event_start', filters.startDate);
       }
       if (filters.endDate) {
-        query = query.lte('date_of_event_end', filters.endDate);
+        countQuery = countQuery.lte('date_of_event_end', filters.endDate);
       }
-
-      // Get total count with filters
-      const { count, error: countError } = await query
-        .select('*', { count: 'exact', head: true });
-
+      if (filters.status) {
+        countQuery = countQuery.eq('status', filters.status);
+      }
+      if (filters.venue) {
+        countQuery = countQuery.ilike('venue', `%${filters.venue}%`);
+      }
+      
+      const { count, error: countError } = await countQuery;
       if (countError) throw countError;
 
       // Get events data
       let dataQuery = this.client.from('events')
         .select(`
-          id, event_id, name, date_of_event_start, date_of_event_end, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
         `)
         .order('date_of_event_start', { ascending: true })
         .range(offset, offset + limit - 1);
@@ -193,6 +200,12 @@ class EventService {
       if (filters.endDate) {
         dataQuery = dataQuery.lte('date_of_event_end', filters.endDate);
       }
+      if (filters.status) {
+        dataQuery = dataQuery.eq('status', filters.status);
+      }
+      if (filters.venue) {
+        dataQuery = dataQuery.ilike('venue', `%${filters.venue}%`);
+      }
 
       const { data: events, error: eventsError } = await dataQuery;
 
@@ -222,8 +235,11 @@ class EventService {
       
       // Map camelCase to snake_case and validate fields
       if (updateData.name) updateFields.name = updateData.name;
+      if (updateData.description !== undefined) updateFields.description = updateData.description;
+      if (updateData.venue !== undefined) updateFields.venue = updateData.venue;
       if (updateData.dateOfEventStart) updateFields.date_of_event_start = updateData.dateOfEventStart;
       if (updateData.dateOfEventEnd) updateFields.date_of_event_end = updateData.dateOfEventEnd;
+      if (updateData.status) updateFields.status = updateData.status;
       if (updateData.venueLayout !== undefined) updateFields.venue_layout = updateData.venueLayout;
       if (updateData.userEmail) updateFields.user_email = updateData.userEmail;
       if (updateData.forecastResult !== undefined) updateFields.forecast_result = updateData.forecastResult;
@@ -233,7 +249,7 @@ class EventService {
         .update(updateFields)
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, date_of_event_start, date_of_event_end, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
         `)
         .single();
 
@@ -262,7 +278,7 @@ class EventService {
         .update({ forecast_result: forecastResult })
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, date_of_event_start, date_of_event_end, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
         `)
         .single();
 
@@ -341,8 +357,11 @@ class EventService {
       id: event.id,
       eventId: event.event_id,
       name: event.name,
+      description: event.description,
+      venue: event.venue,
       dateOfEventStart: event.date_of_event_start,
       dateOfEventEnd: event.date_of_event_end,
+      status: event.status,
       venueLayout: event.venue_layout,
       userEmail: event.user_email,
       forecastResult: event.forecast_result,
