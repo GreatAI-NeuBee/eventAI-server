@@ -36,11 +36,6 @@ const logger = winston.createLogger({
       level: 'error',
       maxsize: 10485760, // 10MB
       maxFiles: 5
-    }),
-    new winston.transports.File({ 
-      filename: 'logs/combined.log',
-      maxsize: 10485760, // 10MB
-      maxFiles: 5
     })
   ]
 });
