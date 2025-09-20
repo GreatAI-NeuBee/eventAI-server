@@ -1,0 +1,346 @@
+{
+  "name": "Event AI - WhatsApp RAG GET Only",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": ["GET", "POST"],
+        "path": "whatsapp-get-only",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-get",
+      "name": "WhatsApp Webhook (GET/POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300],
+      "webhookId": "get-only-webhook"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "try {\n  const inputData = $input.first().json;\n  const query = inputData.query || {};\n  const body = inputData.body || {};\n  const headers = inputData.headers || {};\n  const method = headers['x-n8n-request-method'] || 'GET';\n  \n  console.log('=== REQUEST RECEIVED ===');\n  console.log('Method:', method);\n  console.log('Query params:', JSON.stringify(query, null, 2));\n  console.log('Body:', JSON.stringify(body, null, 2));\n  \n  // Handle GET requests (WhatsApp verification)\n  if (method === 'GET' && query['hub.mode'] && query['hub.challenge'] && query['hub.verify_token']) {\n    console.log('✅ WHATSAPP VERIFICATION REQUEST');\n    const mode = query['hub.mode'];\n    const challenge = query['hub.challenge'];\n    const verifyToken = query['hub.verify_token'];\n    \n    if (mode === 'subscribe' && verifyToken === 'eventAI') {\n      return {\n        action: 'verify',\n        challenge: challenge,\n        status: 'verified'\n      };\n    } else {\n      return {\n        action: 'verify_failed',\n        error: 'Invalid token: ' + verifyToken\n      };\n    }\n  }\n  \n  // Handle POST requests (WhatsApp messages)\n  if (method === 'POST' && body.entry && Array.isArray(body.entry)) {\n    console.log('✅ WHATSAPP MESSAGE REQUEST');\n    \n    for (const entry of body.entry) {\n      if (entry.changes && Array.isArray(entry.changes)) {\n        for (const change of entry.changes) {\n          if (change.value && change.value.messages && Array.isArray(change.value.messages)) {\n            const message = change.value.messages[0]; // Get first message\n            if (message && message.text && message.text.body) {\n              console.log('📱 Message found:', message.text.body);\n              console.log('📱 From:', message.from);\n              \n              return {\n                action: 'process',\n                userMessage: message.text.body,\n                userPhone: message.from,\n                messageId: message.id,\n                timestamp: new Date().toISOString()\n              };\n            }\n          }\n        }\n      }\n    }\n    \n    console.log('⚠️ No valid message found in POST body');\n    return {\n      action: 'skip',\n      reason: 'no_valid_message',\n      body: body\n    };\n  }\n  \n  // Handle test message via GET parameters (for testing)\n  if (method === 'GET' && query.message && query.from) {\n    console.log('✅ TEST MESSAGE VIA GET');\n    console.log('Message:', query.message);\n    console.log('From:', query.from);\n    \n    return {\n      action: 'process',\n      userMessage: query.message,\n      userPhone: query.from,\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  // Default response for any other request\n  console.log('ℹ️ GENERAL REQUEST');\n  return {\n    action: 'info',\n    message: 'WhatsApp webhook is working',\n    method: method,\n    availableEndpoints: {\n      verification: 'GET with hub.mode=subscribe&hub.challenge=TEST&hub.verify_token=eventAI',\n      whatsappMessage: 'POST with WhatsApp message format',\n      testMessage: 'GET with message=Hello&from=60189154390'\n    },\n    timestamp: new Date().toISOString()\n  };\n  \n} catch (error) {\n  console.log('❌ ERROR:', error.message);\n  console.log('❌ Stack:', error.stack);\n  return {\n    action: 'error',\n    error: error.message,\n    timestamp: new Date().toISOString()\n  };\n}"
+      },
+      "id": "process-get",
+      "name": "Process Request (GET/POST)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "verify",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-verification",
+      "name": "Is Verification?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.challenge }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-verification",
+      "name": "Return Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "process",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "check-process",
+      "name": "Is Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [500, 350]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  e.event_id,\n  e.name,\n  e.description,\n  e.venue,\n  e.date_of_event_start,\n  e.date_of_event_end,\n  e.status,\n  e.user_email,\n  CASE \n    WHEN e.forecast_result IS NOT NULL THEN 'Yes'\n    ELSE 'No'\n  END as has_forecast\nFROM events e\nWHERE e.status IN ('CREATED', 'ACTIVE')\n  AND (e.date_of_event_end > NOW() OR e.status = 'ACTIVE')\nORDER BY e.date_of_event_start ASC\nLIMIT 20;",
+        "options": {}
+      },
+      "id": "query-events",
+      "name": "Query Event Database",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [700, 350],
+      "credentials": {
+        "supabaseApi": {
+          "id": "supabase-credentials",
+          "name": "Supabase API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Prepare context for OpenAI from events data\nconst userInput = $input.first().json;\nconst eventsData = $input.all().slice(1); // Skip the first item (user input)\n\nconsole.log('=== PREPARING RAG CONTEXT ===');\nconsole.log('User message:', userInput.userMessage);\nconsole.log('Found events:', eventsData.length);\n\n// Format events data for context\nlet eventsContext = 'AVAILABLE EVENTS DATABASE:\\n\\n';\n\nif (eventsData.length === 0) {\n  eventsContext += 'No upcoming events found in the database.\\n';\n} else {\n  eventsData.forEach((event, index) => {\n    const eventData = event.json;\n    eventsContext += `Event ${index + 1}:\\n`;\n    eventsContext += `- ID: ${eventData.event_id}\\n`;\n    eventsContext += `- Name: ${eventData.name}\\n`;\n    eventsContext += `- Description: ${eventData.description || 'No description'}\\n`;\n    eventsContext += `- Venue: ${eventData.venue || 'Venue TBD'}\\n`;\n    eventsContext += `- Start: ${new Date(eventData.date_of_event_start).toLocaleString()}\\n`;\n    eventsContext += `- End: ${new Date(eventData.date_of_event_end).toLocaleString()}\\n`;\n    eventsContext += `- Status: ${eventData.status}\\n`;\n    eventsContext += `- Organizer: ${eventData.user_email}\\n`;\n    eventsContext += `- Has Forecast: ${eventData.has_forecast}\\n\\n`;\n  });\n}\n\n// Create system prompt\nconst systemPrompt = `You are an AI assistant for Event AI, a smart event management platform. You help users find information about events, provide recommendations, and answer questions about our event database.\n\nYour capabilities:\n- Answer questions about upcoming events\n- Provide event recommendations based on user preferences\n- Help with event details like dates, venues, descriptions\n- Explain event forecasting and crowd predictions\n- General event management advice\n\nGuidelines:\n- Be helpful, friendly, and concise\n- Use the events database information provided\n- If an event has forecast data, mention it as a feature\n- For questions outside your knowledge, politely redirect to event-related topics\n- Always format responses for WhatsApp (use emojis, short lines)\n- Keep responses under 1000 characters for WhatsApp limits\n\nCurrent Events Database:\n${eventsContext}`;\n\nconst userQuery = `User Question: ${userInput.userMessage}\n\nPlease provide a helpful response based on the available events data. Format your response for WhatsApp messaging.`;\n\nconsole.log('✅ Context prepared for OpenAI');\nconsole.log('Events in context:', eventsData.length);\n\nreturn {\n  systemPrompt,\n  userQuery,\n  userPhone: userInput.userPhone,\n  originalMessage: userInput.userMessage,\n  eventsCount: eventsData.length,\n  timestamp: userInput.timestamp\n};"
+      },
+      "id": "prepare-context",
+      "name": "Prepare RAG Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 350]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "message",
+        "modelId": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.systemPrompt }}",
+              "role": "system"
+            },
+            {
+              "content": "={{ $json.userQuery }}",
+              "role": "user"
+            }
+          ]
+        },
+        "simplify": true,
+        "options": {
+          "temperature": 0.3,
+          "maxTokens": 500
+        }
+      },
+      "id": "openai-chat",
+      "name": "OpenAI Chat",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [1100, 350],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai-credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// Process OpenAI response and prepare for WhatsApp\nconst contextData = $input.first().json;\nconst openaiResponse = $input.last().json;\n\nconsole.log('=== PROCESSING AI RESPONSE ===');\nconsole.log('Context data:', JSON.stringify(contextData, null, 2));\nconsole.log('OpenAI Response:', openaiResponse.message?.content || openaiResponse.content || 'No response');\n\n// Extract AI response text\nlet aiResponse = '';\nif (openaiResponse.message && openaiResponse.message.content) {\n  aiResponse = openaiResponse.message.content;\n} else if (openaiResponse.content) {\n  aiResponse = openaiResponse.content;\n} else if (typeof openaiResponse === 'string') {\n  aiResponse = openaiResponse;\n} else {\n  aiResponse = 'Sorry, I encountered an issue processing your request. Please try again.';\n}\n\n// Clean up response for WhatsApp\naiResponse = aiResponse.trim();\n\n// Ensure response is within WhatsApp limits (approx 1000 chars)\nif (aiResponse.length > 1000) {\n  aiResponse = aiResponse.substring(0, 950) + '... (truncated)';\n}\n\n// Add Event AI signature\naiResponse += '\\n\\n🤖 *Event AI Assistant*';\n\nconsole.log('✅ Response prepared for WhatsApp');\nconsole.log('Final response length:', aiResponse.length);\nconsole.log('User phone:', contextData.userPhone);\n\n// Make sure userPhone is properly included\nconst userPhone = contextData.userPhone || '60189154390'; // fallback\n\nreturn {\n  userPhone: userPhone,\n  responseMessage: aiResponse,\n  originalUserMessage: contextData.originalMessage || contextData.userMessage,\n  eventsCount: contextData.eventsCount,\n  timestamp: new Date().toISOString(),\n  processingComplete: true\n};"
+      },
+      "id": "format-response",
+      "name": "Format AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 350]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "phoneNumberId": "={{ $vars.WHATSAPP_PHONE_NUMBER_ID || 'YOUR_PHONE_NUMBER_ID' }}",
+        "recipientPhoneNumber": "={{ $json.userPhone || '60189154390' }}",
+        "messageType": "text",
+        "textBody": "={{ $json.responseMessage || 'Test message from Event AI' }}"
+      },
+      "id": "send-whatsapp-response",
+      "name": "Send WhatsApp Response",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [1500, 350],
+      "credentials": {
+        "whatsAppApi": {
+          "id": "whatsapp-business-api",
+          "name": "WhatsApp Business API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"AI response sent to WhatsApp\", \"phone\": $json.userPhone, \"response_length\": $json.responseMessage.length, \"events_found\": $json.eventsCount } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-message",
+      "name": "Respond Message Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1700, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "respond-default",
+      "name": "Respond Default",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 500]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook (GET/POST)": {
+      "main": [
+        [
+          {
+            "node": "Process Request (GET/POST)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Request (GET/POST)": {
+      "main": [
+        [
+          {
+            "node": "Is Verification?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Is Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Verification?": {
+      "main": [
+        [
+          {
+            "node": "Return Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Default",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Message?": {
+      "main": [
+        [
+          {
+            "node": "Query Event Database",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Default",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Event Database": {
+      "main": [
+        [
+          {
+            "node": "Prepare RAG Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare RAG Context": {
+      "main": [
+        [
+          {
+            "node": "OpenAI Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat": {
+      "main": [
+        [
+          {
+            "node": "Format AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format AI Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Message Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

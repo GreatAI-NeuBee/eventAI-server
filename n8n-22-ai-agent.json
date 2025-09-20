@@ -1,0 +1,313 @@
+{
+  "name": "My workflow 22 - AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-receive",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b3f813f7-58d4-4abc-ac00-f734994693b9",
+      "name": "WhatsApp Messages Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "post-messages-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const inputData = $input.first().json;\n  const body = inputData.body || {};\n  const headers = inputData.headers || {};\n  \n  console.log('=== WHATSAPP POST REQUEST RECEIVED ===');\n  console.log('Headers:', JSON.stringify(headers, null, 2));\n  console.log('Body:', JSON.stringify(body, null, 2));\n  \n  // Parse WhatsApp webhook format\n  if (body.entry && Array.isArray(body.entry)) {\n    console.log('✅ WhatsApp webhook format detected');\n    \n    for (const entry of body.entry) {\n      if (entry.changes && Array.isArray(entry.changes)) {\n        for (const change of entry.changes) {\n          // Handle status updates - IGNORE THESE (they cause spam)\n          if (change.value && change.value.statuses && Array.isArray(change.value.statuses)) {\n            console.log('📊 Status update received - IGNORING to prevent spam');\n            return {\n              action: 'ignore_status',\n              message: 'Status update ignored to prevent spam',\n              timestamp: new Date().toISOString()\n            };\n          }\n          \n          // Handle messages - PROCESS THESE\n          if (change.value && change.value.messages && Array.isArray(change.value.messages)) {\n            const message = change.value.messages[0]; // Get first message\n            if (message && message.text && message.text.body && message.text.body.trim().length > 0) {\n              console.log('📱 Message found:', message.text.body);\n              console.log('📱 From (userPhone):', message.from);\n              console.log('📱 Message ID:', message.id);\n              console.log('📱 Timestamp:', message.timestamp);\n              \n              // Extract metadata for response\n              const metadata = change.value.metadata || {};\n              \n              return {\n                action: 'process_message',\n                userMessage: message.text.body,\n                userPhone: message.from,\n                messageId: message.id,\n                messageTimestamp: message.timestamp,\n                phoneNumberId: metadata.phone_number_id,\n                displayPhoneNumber: metadata.display_phone_number,\n                timestamp: new Date().toISOString()\n              };\n            }\n          }\n        }\n      }\n    }\n    \n    console.log('⚠️ No valid message found in WhatsApp webhook');\n    return {\n      action: 'no_message',\n      reason: 'webhook_received_but_no_message_content',\n      body: body,\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  // Handle test POST format (for debugging) - with validation\n  if (body.message && body.from && body.message.trim().length > 0) {\n    console.log('✅ Test message format detected');\n    return {\n      action: 'process_message',\n      userMessage: body.message.trim(),\n      userPhone: body.from,\n      messageId: 'test_' + Date.now(),\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  console.log('⚠️ Unknown POST format received');\n  return {\n    action: 'unknown_format',\n    message: 'POST request received but format not recognized',\n    body: body,\n    expectedFormats: {\n      whatsapp: 'Standard WhatsApp Business API webhook format',\n      test: '{ \"message\": \"Hello\", \"from\": \"60189154390\" }'\n    },\n    timestamp: new Date().toISOString()\n  };\n  \n} catch (error) {\n  console.log('❌ POST processing error:', error.message);\n  console.log('❌ Stack trace:', error.stack);\n  return {\n    action: 'error',\n    error: error.message,\n    stack: error.stack,\n    timestamp: new Date().toISOString()\n  };\n}"
+      },
+      "id": "8e712778-7c10-46a7-a474-016d0bba4058",
+      "name": "Parse WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "process_message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1849f6d8-2369-4d0d-8207-2d1f466c4e28",
+      "name": "Is Valid Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Create session ID for AI Agent memory based on user phone\nconst userInput = $input.first().json;\n\nconsole.log('=== PREPARING SESSION FOR AI AGENT ===');\nconsole.log('User phone:', userInput.userPhone);\nconsole.log('User message:', userInput.userMessage);\n\n// Create consistent session ID from phone number\nconst sessionId = 'whatsapp_' + userInput.userPhone.replace(/[^0-9]/g, '');\nconsole.log('Generated session ID:', sessionId);\n\n// Return data with session ID for AI Agent\nreturn {\n  sessionId: sessionId,\n  userMessage: userInput.userMessage,\n  userPhone: userInput.userPhone,\n  messageId: userInput.messageId,\n  messageTimestamp: userInput.messageTimestamp,\n  phoneNumberId: userInput.phoneNumberId,\n  displayPhoneNumber: userInput.displayPhoneNumber,\n  timestamp: userInput.timestamp\n};"
+      },
+      "id": "prepare-session-node",
+      "name": "Prepare Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "agent": "conversationalAgent",
+        "promptType": "define",
+        "text": "You are an AI assistant for Event AI, a smart event management platform. You help users find information about events, provide recommendations, and answer questions about our event database.\n\nYou are responding to a WhatsApp message from a user.\n\nYour capabilities:\n- Answer questions about upcoming events\n- Provide event recommendations based on user preferences  \n- Help with event details like dates, venues, descriptions\n- Explain event forecasting and crowd predictions\n- General event management advice\n\nGuidelines:\n- Be helpful, friendly, and conversational\n- Use the events database information from your tools\n- If an event has forecast data, mention it as a feature\n- For questions outside your knowledge, politely redirect to event-related topics\n- Format responses for WhatsApp (use emojis, keep lines short)\n- Keep responses under 1000 characters for WhatsApp limits\n- Be natural and friendly, as if texting a friend",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "You are an Event AI assistant responding to WhatsApp messages. Be helpful, friendly, and format responses for mobile messaging with emojis and short lines."
+        },
+        "tools": [
+          {
+            "name": "supabase",
+            "type": "@n8n/n8n-nodes-langchain.toolSupabase",
+            "typeVersion": 1,
+            "parameters": {
+              "operation": "getAll",
+              "tableId": "events",
+              "description": "Get all events from the Event AI database. Use this tool to find information about upcoming events, venues, dates, descriptions, and event details.",
+              "filterType": "none"
+            },
+            "credentials": {
+              "supabaseApi": {
+                "id": "xkxBeKlligcl8IlZ",
+                "name": "Supabase account"
+              }
+            }
+          }
+        ],
+        "model": {
+          "type": "@n8n/n8n-nodes-langchain.lmOpenAi",
+          "typeVersion": 1,
+          "parameters": {
+            "options": {
+              "temperature": 0.7,
+              "maxTokens": 500
+            }
+          },
+          "credentials": {
+            "openAiApi": {
+              "id": "dYC8yfomjS10x1oE",
+              "name": "OpenAi account 2"
+            }
+          }
+        },
+        "memory": {
+          "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+          "typeVersion": 1,
+          "parameters": {
+            "contextWindowLength": 10,
+            "sessionIdType": "fromInput",
+            "sessionKey": "sessionId"
+          }
+        },
+        "input": "={{ $json.userMessage }}"
+      },
+      "id": "ai-agent-node",
+      "name": "Event AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        700,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process AI Agent response and prepare for WhatsApp reply\nconst userInput = $input.first().json;\nconst agentResponse = $input.last().json;\n\nconsole.log('=== PROCESSING AI AGENT RESPONSE FOR WHATSAPP ===');\nconsole.log('User phone:', userInput.userPhone);\nconsole.log('Phone Number ID:', userInput.phoneNumberId);\nconsole.log('Original message:', userInput.userMessage);\nconsole.log('Agent response keys:', Object.keys(agentResponse));\n\n// Extract AI response text from agent\nlet aiResponse = '';\nif (agentResponse.output) {\n  aiResponse = agentResponse.output;\n} else if (agentResponse.text) {\n  aiResponse = agentResponse.text;\n} else if (typeof agentResponse === 'string') {\n  aiResponse = agentResponse;\n} else {\n  aiResponse = 'Sorry, I had trouble processing your message. Could you try asking again?';\n  console.log('⚠️ Unexpected agent response format:', agentResponse);\n}\n\n// Clean up response for WhatsApp\naiResponse = aiResponse.trim();\n\n// Ensure response is within WhatsApp limits (1024 chars)\nif (aiResponse.length > 1000) {\n  aiResponse = aiResponse.substring(0, 950) + '... 📝';\n}\n\n// Add a friendly signature\naiResponse += '\\n\\n🤖 *Event AI Assistant*';\n\nconsole.log('✅ AI Agent Response prepared for WhatsApp');\nconsole.log('📏 Final response length:', aiResponse.length);\nconsole.log('👀 Response preview:', aiResponse.substring(0, 100) + '...');\nconsole.log('📱 Sending to phone:', userInput.userPhone);\nconsole.log('📞 Using phone number ID:', userInput.phoneNumberId);\n\n// Ensure userPhone is always set with fallback\nconst userPhone = userInput.userPhone || '60189154390';\n\nreturn {\n  userPhone: userPhone,\n  phoneNumberId: userInput.phoneNumberId || '780933715104847',\n  responseMessage: aiResponse,\n  originalUserMessage: userInput.userMessage,\n  messageId: userInput.messageId,\n  timestamp: new Date().toISOString(),\n  processingComplete: true\n};"
+      },
+      "id": "42d003a0-43ad-44c5-917c-57643b5a5554",
+      "name": "Format WhatsApp Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "780933715104847",
+        "recipientPhoneNumber": "={{ $json.userPhone || '60189154390' }}",
+        "textBody": "={{ $json.responseMessage || 'Hello from Event AI!' }}",
+        "additionalFields": {}
+      },
+      "id": "2b1d1714-00f1-49d0-ba2b-b4225e982bad",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        0
+      ],
+      "webhookId": "c208ee19-1f0d-48e0-88c0-807cc3578689",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "wNTSFEmlZzaHLY7g",
+          "name": "WhatsApp account 6"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"AI reply sent to user\", \"phone\": $json.userPhone, \"original_message\": $json.originalUserMessage, \"response_length\": $json.responseMessage.length, \"message_id\": $json.messageId, \"timestamp\": $json.timestamp } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "b5837fb9-89d1-4e44-a64b-9a792014c177",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "fb939bb0-f459-468b-9675-21387c05779a",
+      "name": "Respond Other",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        608,
+        200
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Messages Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Message?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Other",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Session": {
+      "main": [
+        [
+          {
+            "node": "Event AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9d48c75e-8956-409a-95ea-f7ec583a7f02",
+  "meta": {
+    "instanceId": "96a04feb8dd319ff22d1b8c62294286e75b42ff5b8e900e2e3dfe3a4b2d2a79b"
+  },
+  "id": "QkeVDAkImuQQBayS",
+  "tags": []
+}
