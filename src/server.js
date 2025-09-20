@@ -11,8 +11,8 @@ const fs = require('fs');
 require('dotenv').config();
 
 // Import controllers
-const eventController = require('./controllers/eventController');
-const simulationController = require('./controllers/simulationController');
+const eventController = require('./controllers/newEventController');
+const forecastController = require('./controllers/forecastController');
 const userController = require('./controllers/userController');
 
 // Import middleware
@@ -463,7 +463,7 @@ app.get('/postman-guide', (req, res) => {
 // API routes
 app.use('/api/v1/users', userController);
 app.use('/api/v1/events', eventController);
-app.use('/api/v1/simulations', simulationController);
+app.use('/api/v1/forecast', forecastController);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -481,7 +481,7 @@ app.get('/', (req, res) => {
       health: `${req.protocol}://${req.get('host')}/health`,
       users: `${req.protocol}://${req.get('host')}/api/v1/users`,
       events: `${req.protocol}://${req.get('host')}/api/v1/events`,
-      simulations: `${req.protocol}://${req.get('host')}/api/v1/simulations`
+      forecast: `${req.protocol}://${req.get('host')}/api/v1/forecast`
     }
   });
 });
