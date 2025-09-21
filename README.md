@@ -2,8 +2,6 @@
 
 Deployed Link: **https://eventai-server.munymunyhom.tech/api/v1** 
 <br></br>
-Deployed Swagger Docs: **https://eventai-server.munymunyhom.tech/api-docs/**
-<br></br>
 Deployed N8N Link: **https://eventai-server.munymunyhom.tech/n8n/workflow**
 <br></br>
 
