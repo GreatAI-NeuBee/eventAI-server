@@ -1,8 +1,11 @@
 # Event AI Server
 
-Deployed Link: **https://eventai-server.munymunyhom.tech/api/v1**
+Deployed Link: **https://eventai-server.munymunyhom.tech/api/v1** 
+<br></br>
 Deployed Swagger Docs: **https://eventai-server.munymunyhom.tech/api-docs/**
+<br></br>
 Deployed N8N Link: **https://eventai-server.munymunyhom.tech/n8n/workflow**
+<br></br>
 
 A Node.js backend for the Event AI platform, built for AWS EC2 deployment with S3 storage and Supabase database. This server handles event management, AI-powered crowd simulation, and real-time notifications.
 
