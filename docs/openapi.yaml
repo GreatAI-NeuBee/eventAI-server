@@ -16,8 +16,7 @@ info:
     Currently using API key authentication. Future versions will include JWT.
     
     ## Rate Limiting
-    - 100 requests per 15 minutes per IP
-    - Configurable via RATE_LIMIT environment variable
+    - DISABLED - No rate limiting applied for development
     
     ## Response Format
     All responses follow a consistent format:
@@ -622,7 +621,9 @@ paths:
 
     put:
       summary: Update event
-      description: Updates an existing event
+      description: |
+        Updates an existing event with support for attachment URLs and context for AI chatbot knowledge base.
+        All fields are optional - only provided fields will be updated.
       tags:
         - Events
       parameters:
@@ -641,19 +642,56 @@ paths:
               properties:
                 name:
                   type: string
+                  description: Event name
+                  maxLength: 255
+                  example: "Updated Concert in the Park"
                 description:
                   type: string
+                  description: Event description
+                  maxLength: 1000
+                  example: "An updated description of the concert event"
                 venue:
                   type: string
-                expectedAttendees:
-                  type: integer
-                  minimum: 1
-                eventDate:
+                  description: Event venue
+                  maxLength: 255
+                  example: "Central Park Amphitheater"
+                dateOfEventStart:
                   type: string
                   format: date-time
-                eventType:
+                  description: Event start date and time
+                  example: "2024-07-15T18:00:00Z"
+                dateOfEventEnd:
                   type: string
-                  enum: [CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER]
+                  format: date-time
+                  description: Event end date and time
+                  example: "2024-07-15T23:00:00Z"
+                status:
+                  type: string
+                  enum: [CREATED, ACTIVE, COMPLETED, CANCELLED]
+                  description: Event status
+                  example: "ACTIVE"
+                venueLayout:
+                  type: object
+                  description: Venue layout configuration (JSON object)
+                  example: {"sections": ["A", "B", "C"], "capacity": 5000}
+                userEmail:
+                  type: string
+                  format: email
+                  description: Email of the user who created the event
+                  example: "user@example.com"
+                attachmentUrls:
+                  type: array
+                  description: Array of attachment URLs for AI chatbot knowledge base
+                  items:
+                    type: string
+                    format: uri
+                    maxLength: 2048
+                  example: ["https://example.com/event-plan.pdf", "https://example.com/venue-map.jpg"]
+                attachmentContext:
+                  type: string
+                  description: Text interpretation/context of attachments for AI chatbot knowledge base
+                  maxLength: 10000
+                  example: "Event plan includes detailed schedule and safety protocols. Venue map shows emergency exits and first aid stations."
       responses:
         '200':
           description: Event updated successfully
@@ -1493,6 +1531,17 @@ components:
           type: string
           enum: [CREATED, ACTIVE, COMPLETED, CANCELLED]
           description: Event status
+        attachmentUrls:
+          type: array
+          description: Array of attachment URLs for AI chatbot knowledge base
+          items:
+            type: string
+            format: uri
+          example: ["https://example.com/event-plan.pdf", "https://example.com/venue-map.jpg"]
+        attachmentContext:
+          type: string
+          description: Text interpretation/context of attachments for AI chatbot knowledge base
+          example: "Event plan includes detailed schedule and safety protocols. Venue map shows emergency exits and first aid stations."
         createdAt:
           type: string
           format: date-time

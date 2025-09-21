@@ -55,14 +55,16 @@ class EventService {
         status: eventData.status || 'CREATED',
         venue_layout: eventData.venueLayout || null,
         user_email: eventData.userEmail,
-        forecast_result: null // Will be populated by forecast service
+        forecast_result: null, // Will be populated by forecast service
+        attachment_urls: eventData.attachmentUrls || [],
+        attachment_context: eventData.attachmentContext || null
       };
 
       const { data: event, error } = await this.client
         .from('events')
         .insert(eventRecord)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -94,7 +96,7 @@ class EventService {
       const { data: event, error } = await this.client
         .from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
         `)
         .eq('event_id', eventId)
         .single();
@@ -169,7 +171,7 @@ class EventService {
       // Get events data
       let dataQuery = this.client.from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
         `)
         .order('date_of_event_start', { ascending: true })
         .range(offset, offset + limit - 1);
@@ -243,13 +245,15 @@ class EventService {
       if (updateData.venueLayout !== undefined) updateFields.venue_layout = updateData.venueLayout;
       if (updateData.userEmail) updateFields.user_email = updateData.userEmail;
       if (updateData.forecastResult !== undefined) updateFields.forecast_result = updateData.forecastResult;
+      if (updateData.attachmentUrls !== undefined) updateFields.attachment_urls = updateData.attachmentUrls;
+      if (updateData.attachmentContext !== undefined) updateFields.attachment_context = updateData.attachmentContext;
 
       const { data: event, error } = await this.client
         .from('events')
         .update(updateFields)
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -278,7 +282,7 @@ class EventService {
         .update({ forecast_result: forecastResult })
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -365,6 +369,8 @@ class EventService {
       venueLayout: event.venue_layout,
       userEmail: event.user_email,
       forecastResult: event.forecast_result,
+      attachmentUrls: event.attachment_urls,
+      attachmentContext: event.attachment_context,
       createdAt: event.created_at,
       updatedAt: event.updated_at
     };

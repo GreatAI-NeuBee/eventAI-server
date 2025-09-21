@@ -199,6 +199,70 @@ const validateCreateEvent = [
     .withMessage('Event type must be one of: CONCERT, CONFERENCE, SPORTS, FESTIVAL, OTHER')
 ];
 
+// Validation middleware for updating events with attachment support
+const validateUpdateEvent = [
+  body('name')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 255 })
+    .withMessage('Event name must be between 1 and 255 characters'),
+  body('description')
+    .optional()
+    .isString()
+    .isLength({ max: 1000 })
+    .withMessage('Description must not exceed 1000 characters'),
+  body('venue')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 255 })
+    .withMessage('Venue must be between 1 and 255 characters'),
+  body('dateOfEventStart')
+    .optional()
+    .isISO8601()
+    .withMessage('Event start date must be a valid ISO 8601 date'),
+  body('dateOfEventEnd')
+    .optional()
+    .isISO8601()
+    .withMessage('Event end date must be a valid ISO 8601 date'),
+  body('status')
+    .optional()
+    .isIn(['CREATED', 'ACTIVE', 'COMPLETED', 'CANCELLED'])
+    .withMessage('Status must be one of: CREATED, ACTIVE, COMPLETED, CANCELLED'),
+  body('venueLayout')
+    .optional()
+    .isObject()
+    .withMessage('Venue layout must be a valid JSON object'),
+  body('userEmail')
+    .optional()
+    .isEmail()
+    .withMessage('User email must be a valid email address'),
+  body('attachmentUrls')
+    .optional()
+    .isArray()
+    .withMessage('Attachment URLs must be an array')
+    .custom((urls) => {
+      if (!Array.isArray(urls)) return false;
+      // Validate each URL in the array
+      for (const url of urls) {
+        if (typeof url !== 'string' || url.length === 0 || url.length > 2048) {
+          throw new Error('Each attachment URL must be a non-empty string with max 2048 characters');
+        }
+        // Basic URL validation
+        try {
+          new URL(url);
+        } catch {
+          throw new Error(`Invalid URL format: ${url}`);
+        }
+      }
+      return true;
+    }),
+  body('attachmentContext')
+    .optional()
+    .isString()
+    .isLength({ max: 10000 })
+    .withMessage('Attachment context must not exceed 10,000 characters')
+];
+
 /**
  * POST /events
  * Creates a new event with optional file uploads
@@ -425,9 +489,9 @@ router.get('/', asyncHandler(async (req, res) => {
 
 /**
  * PUT /events/:eventId
- * Updates an existing event
+ * Updates an existing event with attachment support
  */
-router.put('/:eventId', validateCreateEvent, asyncHandler(async (req, res) => {
+router.put('/:eventId', validateUpdateEvent, asyncHandler(async (req, res) => {
   const { eventId } = req.params;
 
   if (!eventId || !eventId.startsWith('evt_')) {
@@ -453,43 +517,53 @@ router.put('/:eventId', validateCreateEvent, asyncHandler(async (req, res) => {
       name,
       description,
       venue,
-      expectedAttendees,
-      eventDate,
-      eventType,
-      ticketingData,
-      seatingChart
+      dateOfEventStart,
+      dateOfEventEnd,
+      status,
+      venueLayout,
+      userEmail,
+      attachmentUrls,
+      attachmentContext
     } = req.body;
 
-    // Handle S3 updates
-    const s3Keys = { ...existingEvent.s3Keys };
-
-    if (ticketingData) {
-      const ticketingKey = `events/${eventId}/ticketing-data.json`;
-      await s3Service.uploadJson(ticketingKey, ticketingData);
-      s3Keys.ticketingData = ticketingKey;
+    // Validate attachment URLs if provided
+    if (attachmentUrls && Array.isArray(attachmentUrls)) {
+      for (const url of attachmentUrls) {
+        try {
+          new URL(url); // Validate URL format
+        } catch (error) {
+          throw new AppError(`Invalid URL format: ${url}`, 400);
+        }
+      }
     }
 
-    if (seatingChart) {
-      const seatingKey = `events/${eventId}/seating-chart.json`;
-      await s3Service.uploadJson(seatingKey, seatingChart);
-      s3Keys.seatingChart = seatingKey;
-    }
+    // Update event in database
+    const updateData = {};
+    
+    // Only include fields that are provided in the request
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (venue !== undefined) updateData.venue = venue;
+    if (dateOfEventStart !== undefined) updateData.dateOfEventStart = new Date(dateOfEventStart);
+    if (dateOfEventEnd !== undefined) updateData.dateOfEventEnd = new Date(dateOfEventEnd);
+    if (status !== undefined) updateData.status = status;
+    if (venueLayout !== undefined) updateData.venueLayout = venueLayout;
+    if (userEmail !== undefined) updateData.userEmail = userEmail;
+    if (attachmentUrls !== undefined) updateData.attachmentUrls = attachmentUrls;
+    if (attachmentContext !== undefined) updateData.attachmentContext = attachmentContext;
 
-    // Update event in RDS
-    const updateData = {
-      name,
-      description,
-      venue,
-      expectedAttendees,
-      eventDate: new Date(eventDate),
-      eventType,
-      s3Keys,
-      updatedAt: new Date()
-    };
+    // Ensure at least one field is being updated
+    if (Object.keys(updateData).length === 0) {
+      throw new AppError('No valid fields provided for update', 400);
+    }
 
     const updatedEvent = await supabaseService.updateEvent(eventId, updateData);
 
-    logger.info('Event updated successfully', { eventId });
+    logger.info('Event updated successfully', { 
+      eventId, 
+      updatedFields: Object.keys(updateData),
+      hasAttachments: !!(attachmentUrls && attachmentUrls.length > 0)
+    });
 
     res.status(200).json({
       success: true,
