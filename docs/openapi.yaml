@@ -926,6 +926,451 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/forecast:
+    post:
+      summary: Generate crowd forecast
+      description: |
+        Generates crowd forecast using the new AI model endpoint.
+        This endpoint calls the model at http://43.216.25.126/forecast_inout
+        and saves the forecast result to the event's forecast_result field.
+      tags:
+        - Forecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventid
+                - gates
+                - schedule_start_time
+                - event_end_time
+                - method_exits
+                - freq
+                - gates_crowd
+              properties:
+                eventid:
+                  type: string
+                  description: Event ID for which to generate the forecast
+                  example: "evt_123456789"
+                gates:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+                  description: Array of gate identifiers
+                  example: ["1", "2", "A"]
+                schedule_start_time:
+                  type: string
+                  format: date-time
+                  description: Schedule start time in ISO 8601 format
+                  example: "2025-09-21T14:00:00"
+                event_end_time:
+                  type: string
+                  format: date-time
+                  description: Event end time in ISO 8601 format
+                  example: "2025-09-21T16:00:00"
+                method_exits:
+                  type: string
+                  description: Method for handling exits (as string)
+                  example: "mirror_delay"
+        freq:
+          type: string
+          description: Frequency for forecast intervals
+          example: "5min"
+        gates_crowd:
+          type: array
+          description: Required array of gate capacities corresponding to gates array
+          items:
+            type: integer
+            minimum: 0
+          example: [500, 300, 800]
+      examples:
+              standard_forecast:
+                summary: Standard forecast request
+                value:
+                  eventid: "evt_123456789"
+                  gates: ["1", "2", "A"]
+                  schedule_start_time: "2025-09-21T14:00:00"
+                  event_end_time: "2025-09-21T16:00:00"
+                  method_exits: "mirror_delay"
+                  freq: "5min"
+      responses:
+        '200':
+          description: Forecast generated successfully. The AI model provides arrivals data (entry rush period) and exits data (departure rush period). Gaps between these periods represent stable event attendance with no rush activity.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ForecastResult'
+                  message:
+                    type: string
+                    example: "Forecast generated successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "Event not found"
+                  code: "EVENT_NOT_FOUND"
+        '503':
+          description: AI model service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  status: "error"
+                  message: "AI model service unavailable"
+                  code: "SERVICE_UNAVAILABLE"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/forecast/legacy:
+    post:
+      summary: Generate forecast (Legacy endpoint)
+      description: Legacy forecast endpoint that uses the original AI model structure
+      tags:
+        - Forecast
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventId
+              properties:
+                eventId:
+                  type: string
+                  description: Event ID
+                  example: "evt_123456789"
+                inputData:
+                  type: object
+                  description: Additional input data for forecasting
+                  properties:
+                    historicalData:
+                      type: object
+                      description: Historical data for the event
+                    weatherData:
+                      type: object
+                      description: Weather data for forecast
+                    promotionalData:
+                      type: object
+                      description: Promotional campaign data
+                    expectedAttendance:
+                      type: integer
+                      minimum: 1
+                      description: Expected attendance
+                    ticketsSold:
+                      type: integer
+                      minimum: 0
+                      description: Number of tickets sold
+      responses:
+        '200':
+          description: Forecast generated successfully. The AI model provides arrivals data (entry rush period) and exits data (departure rush period). Gaps between these periods represent stable event attendance with no rush activity.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LegacyForecastResult'
+                  message:
+                    type: string
+                    example: "Forecast generated successfully"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: AI model service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/forecast/{eventId}:
+    get:
+      summary: Get existing forecast
+      description: Retrieves existing forecast for an event
+      tags:
+        - Forecast
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+            example: "evt_123456789"
+      responses:
+        '200':
+          description: Forecast retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                        example: "evt_123456789"
+                      forecastResult:
+                        type: object
+                        description: The stored forecast result
+                      lastUpdated:
+                        type: string
+                        format: date-time
+                        description: When the forecast was last updated
+        '404':
+          description: Forecast not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "Forecast not found for this event"
+                  code: "FORECAST_NOT_FOUND"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      summary: Delete forecast
+      description: Deletes forecast for an event
+      tags:
+        - Forecast
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+            example: "evt_123456789"
+      responses:
+        '200':
+          description: Forecast deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Forecast deleted successfully"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/forecast/regenerate/{eventId}:
+    post:
+      summary: Regenerate forecast
+      description: Regenerates forecast for an event (convenience endpoint)
+      tags:
+        - Forecast
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID
+          schema:
+            type: string
+            example: "evt_123456789"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Optional input data for regenerating forecast
+      responses:
+        '200':
+          description: Forecast regenerated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/LegacyForecastResult'
+                  message:
+                    type: string
+                    example: "Forecast regenerated successfully"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '503':
+          description: AI model service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/forecast/health/model:
+    get:
+      summary: Check legacy AI model health
+      description: Checks the health status of the legacy AI model service
+      tags:
+        - Forecast
+      responses:
+        '200':
+          description: Model health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      modelEndpoint:
+                        type: string
+                        example: "http://localhost:8080/predict"
+                      isHealthy:
+                        type: boolean
+                        example: true
+                      checkedAt:
+                        type: string
+                        format: date-time
+                      type:
+                        type: string
+                        example: "legacy"
+                  message:
+                    type: string
+                    example: "Legacy AI model service is healthy"
+        '503':
+          description: Model service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "error"
+                      message:
+                        type: string
+                        example: "Unable to check legacy AI model service health"
+                      code:
+                        type: string
+                        example: "SERVICE_UNAVAILABLE"
+
+  /api/v1/forecast/health/new-model:
+    get:
+      summary: Check new AI model health
+      description: Checks the health status of the new AI model service at http://43.216.25.126/forecast_inout
+      tags:
+        - Forecast
+      responses:
+        '200':
+          description: Model health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      modelEndpoint:
+                        type: string
+                        example: "http://43.216.25.126/forecast_inout"
+                      isHealthy:
+                        type: boolean
+                        example: true
+                      checkedAt:
+                        type: string
+                        format: date-time
+                      type:
+                        type: string
+                        example: "new"
+                  message:
+                    type: string
+                    example: "New AI model service is healthy"
+        '503':
+          description: Model service unavailable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "error"
+                      message:
+                        type: string
+                        example: "Unable to check new AI model service health"
+                      code:
+                        type: string
+                        example: "SERVICE_UNAVAILABLE"
+
 components:
   schemas:
     User:
@@ -1258,6 +1703,231 @@ components:
           type: boolean
           example: false
 
+    ForecastResult:
+      type: object
+      description: Result from the new AI model forecast endpoint
+      properties:
+        eventId:
+          type: string
+          description: Event ID for which the forecast was generated
+          example: "evt_123456789"
+        forecastResult:
+          type: object
+          description: The structured forecast data from the AI model
+          properties:
+            forecast:
+              type: array
+              description: Array of gate forecast objects
+              items:
+                type: object
+                properties:
+                  gate:
+                    type: string
+                    description: Gate identifier
+                    example: "1"
+                  timeFrames:
+                    type: array
+                    description: Time-based forecast predictions for this gate
+                    items:
+                      type: object
+                      properties:
+                        timestamp:
+                          type: string
+                          description: ISO 8601 timestamp for this prediction
+                          example: "2025-09-21 14:00:00"
+                        predicted:
+                          type: integer
+                          description: Predicted count (rounded)
+                          example: 186
+                        lower_bound:
+                          type: integer
+                          description: Lower bound of prediction (rounded)
+                          example: 146
+                        upper_bound:
+                          type: integer
+                          description: Upper bound of prediction (rounded)
+                          example: 230
+                        dataSource:
+                          type: string
+                          description: Source of this timeframe data (arrivals = entry rush period, exits = departure rush period, simulation = gap filled with predicted value of 10)
+                          enum: ["arrivals", "exits", "simulation"]
+                          example: "arrivals"
+            metadata:
+              type: object
+              properties:
+                processedAt:
+                  type: string
+                  format: date-time
+                  description: When the response was processed
+                modelVersion:
+                  type: string
+                  description: Version of the AI model used
+                  example: "forecast_inout_v1"
+                endpoint:
+                  type: string
+                  description: The AI model endpoint used
+                  example: "http://43.216.25.126/forecast_inout"
+                totalGates:
+                  type: integer
+                  description: Total number of gates in forecast
+                  example: 3
+                timeFrameCount:
+                  type: integer
+                  description: Number of time frames per gate
+                  example: 31
+            summary:
+              type: object
+              properties:
+                totalGates:
+                  type: integer
+                  example: 3
+                gates:
+                  type: array
+                  items:
+                    type: string
+                  example: ["1", "2", "A"]
+                forecastPeriod:
+                  type: object
+                  properties:
+                    start:
+                      type: string
+                      example: "2025-09-21 11:30:00"
+                    end:
+                      type: string
+                      example: "2025-09-21 15:00:00"
+                predictions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      gate:
+                        type: string
+                        example: "1"
+                      totalTimeFrames:
+                        type: integer
+                        example: 31
+                      peakPrediction:
+                        type: integer
+                        example: 196
+                      avgPrediction:
+                        type: integer
+                        example: 112
+                      dataSources:
+                        type: object
+                        description: Count of timeframes by data source
+                        properties:
+                          arrivals:
+                            type: integer
+                            description: Number of timeframes from arrivals data (entry rush period)
+                            example: 13
+                          exits:
+                            type: integer
+                            description: Number of timeframes from exits data (departure rush period)
+                            example: 1
+                          simulation:
+                            type: integer
+                            description: Number of timeframes filled with simulation data (predicted value of 10)
+                            example: 47
+                status:
+                  type: string
+                  example: "completed"
+        generatedAt:
+          type: string
+          format: date-time
+          description: When the forecast was generated
+        modelEndpoint:
+          type: string
+          description: The AI model endpoint that was called
+          example: "http://43.216.25.126/forecast_inout"
+        inputData:
+          type: object
+          description: The input data that was sent to the model
+          properties:
+            gates:
+              type: array
+              items:
+                type: string
+              example: ["1", "2", "A"]
+            schedule_start_time:
+              type: string
+              example: "2025-09-21T14:00:00"
+            event_end_time:
+              type: string
+              example: "2025-09-21T16:00:00"
+            method_exits:
+              type: string
+              example: "mirror_delay"
+            freq:
+              type: string
+              example: "5min"
+
+    LegacyForecastResult:
+      type: object
+      description: Result from the legacy AI model forecast endpoint
+      properties:
+        eventId:
+          type: string
+          description: Event ID for which the forecast was generated
+          example: "evt_123456789"
+        forecastResult:
+          type: object
+          description: The forecast data from the legacy AI model
+          properties:
+            prediction:
+              type: object
+              description: Raw prediction data from the legacy model
+            metadata:
+              type: object
+              properties:
+                processedAt:
+                  type: string
+                  format: date-time
+                modelVersion:
+                  type: string
+                  example: "unknown"
+                confidence:
+                  type: number
+                  description: Confidence score of the prediction
+                  example: 0.85
+            summary:
+              type: object
+              properties:
+                totalAttendance:
+                  type: integer
+                  example: 5000
+                peakHours:
+                  type: array
+                  items:
+                    type: string
+                  example: ["18:00", "19:00"]
+                congestionRisk:
+                  type: string
+                  example: "medium"
+                highRiskZones:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Main Entrance", "Food Court"]
+                recommendations:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Deploy additional staff at main entrance"]
+                confidence:
+                  type: number
+                  example: 0.85
+        generatedAt:
+          type: string
+          format: date-time
+          description: When the forecast was generated
+        modelEndpoint:
+          type: string
+          description: The AI model endpoint that was called
+          example: "http://localhost:8080/predict"
+        inputData:
+          type: object
+          description: The input data that was sent to the model
+
     Error:
       type: object
       properties:
@@ -1330,3 +2000,5 @@ tags:
     description: Event management operations
   - name: Simulations
     description: AI simulation operations
+  - name: Forecast
+    description: AI-powered crowd forecasting operations
