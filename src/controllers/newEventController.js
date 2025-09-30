@@ -2,8 +2,12 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { v4: uuidv4 } = require('uuid');
 const winston = require('winston');
+const multer = require('multer');
 
 const eventService = require('../services/eventService');
+const s3Service = require('../services/s3Service');
+const comprehendService = require('../services/comprehendService');
+const fileProcessor = require('../utils/fileProcessor');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -22,6 +26,41 @@ const logger = winston.createLogger({
       format: winston.format.simple()
     })
   ]
+});
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit
+    files: 10 // Maximum 10 files per request
+  },
+  fileFilter: (req, file, cb) => {
+    // Basic file type validation
+    const allowedMimeTypes = [
+      'text/plain',
+      'text/csv',
+      'text/markdown',
+      'text/html',
+      'application/json',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel',
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/bmp',
+      'image/webp'
+    ];
+
+    if (allowedMimeTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type ${file.mimetype} is not supported`), false);
+    }
+  }
 });
 
 // Custom validation for date range
@@ -491,6 +530,228 @@ router.delete('/:eventId', asyncHandler(async (req, res) => {
     logger.error('Error deleting event', { eventId, error: error.message });
     throw new AppError('Failed to delete event', 500, error.message);
   }
+}));
+
+/**
+ * POST /events/:eventId/uploadEventAttachments
+ * Uploads files as event attachments and analyzes them with AWS Comprehend
+ */
+router.post('/:eventId/uploadEventAttachments', upload.array('files', 10), asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+  const files = req.files;
+
+  if (!files || files.length === 0) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        status: 'fail',
+        message: 'No files provided',
+        code: 'NO_FILES_UPLOADED'
+      },
+      timestamp: new Date().toISOString(),
+      requestId: req.headers['x-request-id'] || 'unknown'
+    });
+  }
+
+  logger.info('Processing event attachment uploads', { 
+    eventId, 
+    fileCount: files.length,
+    files: files.map(f => ({ name: f.originalname, size: f.size, type: f.mimetype }))
+  });
+
+  try {
+    // Check if event exists
+    const existingEvent = await eventService.getEventById(eventId);
+    if (!existingEvent) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    const uploadResults = [];
+    const analysisResults = [];
+    const errors = [];
+
+    // Process each file
+    for (const file of files) {
+      try {
+        logger.info('Processing file', { 
+          eventId, 
+          fileName: file.originalname,
+          size: file.size,
+          mimeType: file.mimetype
+        });
+
+        // Validate file
+        const validation = fileProcessor.validateFile(file.buffer, file.mimetype, file.originalname);
+        if (!validation.isValid) {
+          errors.push({
+            fileName: file.originalname,
+            errors: validation.errors
+          });
+          continue;
+        }
+
+        // Upload to S3
+        const uploadResult = await s3Service.uploadEventAttachment(
+          eventId,
+          file.buffer,
+          file.originalname,
+          file.mimetype
+        );
+
+        uploadResults.push(uploadResult);
+
+        // Extract text content for analysis
+        const textContent = await fileProcessor.extractTextContent(
+          file.buffer,
+          file.mimetype,
+          file.originalname
+        );
+
+        // Analyze with AWS Comprehend (if we have meaningful text content)
+        let analysisResult = null;
+        if (textContent && textContent.length > 50) {
+          try {
+            analysisResult = await comprehendService.analyzeEventFile(
+              textContent,
+              file.originalname,
+              file.mimetype
+            );
+          } catch (analysisError) {
+            logger.warn('Comprehend analysis failed, continuing without analysis', {
+              eventId,
+              fileName: file.originalname,
+              error: analysisError.message
+            });
+            analysisResult = {
+              fileName: file.originalname,
+              error: 'Analysis failed',
+              textContent: textContent.substring(0, 500) + '...'
+            };
+          }
+        } else {
+          analysisResult = {
+            fileName: file.originalname,
+            message: 'File content not suitable for text analysis',
+            textContent: textContent.substring(0, 500) + '...'
+          };
+        }
+
+        analysisResults.push(analysisResult);
+
+      } catch (fileError) {
+        logger.error('Error processing file', { 
+          eventId, 
+          fileName: file.originalname, 
+          error: fileError.message 
+        });
+        errors.push({
+          fileName: file.originalname,
+          errors: [fileError.message]
+        });
+      }
+    }
+
+    // Update event with attachment URLs and context
+    if (uploadResults.length > 0) {
+      const currentAttachmentUrls = existingEvent.attachmentUrls || [];
+      const newAttachmentUrls = uploadResults.map(result => result.signedUrl);
+      const updatedAttachmentUrls = [...currentAttachmentUrls, ...newAttachmentUrls];
+
+      // Compile comprehensive AI context
+      const analysisContext = analysisResults
+        .filter(result => result && !result.error)
+        .map(result => {
+          if (result.aiReadyContext) {
+            // Use the comprehensive AI-ready context
+            return result.aiReadyContext;
+          } else if (result.contextSummary) {
+            return result.contextSummary;
+          } else {
+            return `File: ${result.fileName}\n${result.message || 'No analysis available'}\n`;
+          }
+        })
+        .join('\n' + '='.repeat(80) + '\n');
+
+      const currentContext = existingEvent.attachmentContext || '';
+      const updatedContext = currentContext 
+        ? `${currentContext}\n\n--- New Attachments (${new Date().toISOString()}) ---\n${analysisContext}`
+        : analysisContext;
+
+      // Update event in database
+      const updatedEvent = await eventService.updateEvent(eventId, {
+        attachmentUrls: updatedAttachmentUrls,
+        attachmentContext: updatedContext
+      });
+
+      logger.info('Event attachments updated successfully', {
+        eventId,
+        totalAttachments: updatedAttachmentUrls.length,
+        newAttachments: uploadResults.length
+      });
+
+      // Prepare response
+      const response = {
+        success: true,
+        data: {
+          eventId,
+          uploadedFiles: uploadResults.length,
+          totalAttachments: updatedAttachmentUrls.length,
+          uploads: uploadResults,
+          analysis: analysisResults,
+          event: updatedEvent
+        },
+        message: `Successfully uploaded ${uploadResults.length} file(s) and analyzed content`
+      };
+
+      if (errors.length > 0) {
+        response.warnings = {
+          failedFiles: errors.length,
+          errors
+        };
+        response.message += ` (${errors.length} file(s) failed)`;
+      }
+
+      res.status(201).json(response);
+    } else {
+      // All files failed
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'All files failed to upload',
+          details: errors
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+  } catch (error) {
+    logger.error('Error processing event attachments', { eventId, error: error.message });
+    throw new AppError('Failed to process event attachments', 500, error.message);
+  }
+}));
+
+/**
+ * GET /events/:eventId/attachments/supported-types
+ * Returns information about supported file types
+ */
+router.get('/:eventId/attachments/supported-types', asyncHandler(async (req, res) => {
+  const supportedTypes = fileProcessor.getSupportedFileTypes();
+  
+  res.status(200).json({
+    success: true,
+    data: supportedTypes
+  });
 }));
 
 module.exports = router;

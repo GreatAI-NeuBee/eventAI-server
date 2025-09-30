@@ -524,7 +524,7 @@ paths:
                     properties:
                       eventId:
                         type: string
-                        example: "evt_123456789"
+                        example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
                       simulationId:
                         type: string
                         example: "sim_123456789"
@@ -599,8 +599,7 @@ paths:
           description: Event ID
           schema:
             type: string
-            pattern: '^evt_[a-zA-Z0-9]+$'
-            example: "evt_123456789"
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
       responses:
         '200':
           description: Event details
@@ -743,6 +742,198 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/events/{eventId}/uploadEventAttachments:
+    post:
+      summary: Upload event attachments
+      description: |
+        Uploads multiple files as event attachments with comprehensive AI analysis.
+        
+        **Supported File Types:**
+        - **Text files** (.txt) - Direct text extraction with content analysis
+        - **CSV files** (.csv) - Structured data extraction with analysis  
+        - **Markdown** (.md) - Text extraction with structure preservation
+        - **HTML** (.html, .htm) - Clean text extraction with tag removal
+        - **JSON** (.json) - Structured data extraction and formatting
+        - **PDF documents** (.pdf) - Full text extraction with metadata
+        - **Word documents** (.docx) - Complete text extraction
+        - **Excel spreadsheets** (.xlsx, .xls) - Multi-worksheet data extraction
+        - **Images** (.jpg, .jpeg, .png) - OCR text extraction using AWS Textract
+        
+        **AI Analysis Features:**
+        - Entity recognition (people, locations, organizations, dates)
+        - Key phrase extraction and topic identification
+        - Event relevance scoring and actionable insights
+        - Comprehensive AI-ready context generation
+        - Structured content analysis (tables, forms, lists)
+        
+        Files are stored securely in S3 with 7-day signed URLs and analyzed with AWS Comprehend and Textract.
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID to attach files to
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - files
+              properties:
+                files:
+                  type: array
+                  description: Files to upload (up to 10 files, 50MB each)
+                  items:
+                    type: string
+                    format: binary
+                  maxItems: 10
+            encoding:
+              files:
+                style: form
+                explode: true
+      responses:
+        '201':
+          description: Files uploaded and analyzed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                        example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+                      uploadedFiles:
+                        type: integer
+                        description: Number of files successfully uploaded
+                        example: 3
+                      totalAttachments:
+                        type: integer
+                        description: Total number of attachments for this event
+                        example: 5
+                      uploads:
+                        type: array
+                        description: Details of uploaded files
+                        items:
+                          $ref: '#/components/schemas/AttachmentUpload'
+                      analysis:
+                        type: array
+                        description: AI analysis results for each file
+                        items:
+                          $ref: '#/components/schemas/AttachmentAnalysis'
+                      event:
+                        $ref: '#/components/schemas/Event'
+                  message:
+                    type: string
+                    example: "Successfully uploaded 3 file(s) and analyzed content"
+                  warnings:
+                    type: object
+                    description: Present if some files failed to upload
+                    properties:
+                      failedFiles:
+                        type: integer
+                        example: 1
+                      errors:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            fileName:
+                              type: string
+                              example: "large-file.pdf"
+                            errors:
+                              type: array
+                              items:
+                                type: string
+                              example: ["File size exceeds maximum allowed size (50MB)"]
+        '400':
+          description: Bad request - validation errors or no files provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                no_files:
+                  summary: No files provided
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "No files provided"
+                      code: "NO_FILES_UPLOADED"
+                all_files_failed:
+                  summary: All files failed to upload
+                  value:
+                    success: false
+                    error:
+                      status: "fail" 
+                      message: "All files failed to upload"
+                      details: [
+                        {
+                          "fileName": "invalid-file.exe",
+                          "errors": ["File type application/x-msdownload is not supported"]
+                        }
+                      ]
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "Event not found"
+                  code: "EVENT_NOT_FOUND"
+        '413':
+          description: File too large (exceeds 50MB limit)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/events/{eventId}/attachments/supported-types:
+    get:
+      summary: Get supported file types
+      description: Returns information about supported file types and processing capabilities
+      tags:
+        - Events
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID (for consistency with API structure)
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      responses:
+        '200':
+          description: Supported file types information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/SupportedFileTypes'
 
   /api/v1/simulations/{simulationId}/trigger:
     post:
@@ -991,7 +1182,7 @@ paths:
                 eventid:
                   type: string
                   description: Event ID for which to generate the forecast
-                  example: "evt_123456789"
+                  example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
                 gates:
                   type: array
                   items:
@@ -1097,7 +1288,7 @@ paths:
                 eventId:
                   type: string
                   description: Event ID
-                  example: "evt_123456789"
+                  example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
                 inputData:
                   type: object
                   description: Additional input data for forecasting
@@ -1165,7 +1356,7 @@ paths:
           description: Event ID
           schema:
             type: string
-            example: "evt_123456789"
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
       responses:
         '200':
           description: Forecast retrieved successfully
@@ -1182,7 +1373,7 @@ paths:
                     properties:
                       eventId:
                         type: string
-                        example: "evt_123456789"
+                        example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
                       forecastResult:
                         type: object
                         description: The stored forecast result
@@ -1217,7 +1408,7 @@ paths:
           description: Event ID
           schema:
             type: string
-            example: "evt_123456789"
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
       responses:
         '200':
           description: Forecast deleted successfully
@@ -1254,7 +1445,7 @@ paths:
           description: Event ID
           schema:
             type: string
-            example: "evt_123456789"
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
       requestBody:
         required: false
         content:
@@ -1488,7 +1679,7 @@ components:
         eventId:
           type: string
           description: External event ID
-          example: "evt_123456789"
+          example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
         simulationId:
           type: string
           description: Associated simulation ID
@@ -1566,7 +1757,7 @@ components:
         eventId:
           type: string
           description: Associated event ID
-          example: "evt_123456789"
+          example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
         status:
           type: string
           enum: [PENDING, RUNNING, COMPLETED, FAILED, CANCELLED]
@@ -1759,7 +1950,7 @@ components:
         eventId:
           type: string
           description: Event ID for which the forecast was generated
-          example: "evt_123456789"
+          example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
         forecastResult:
           type: object
           description: The structured forecast data from the AI model
@@ -1917,7 +2108,7 @@ components:
         eventId:
           type: string
           description: Event ID for which the forecast was generated
-          example: "evt_123456789"
+          example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
         forecastResult:
           type: object
           description: The forecast data from the legacy AI model
@@ -1976,6 +2167,315 @@ components:
         inputData:
           type: object
           description: The input data that was sent to the model
+
+    AttachmentUpload:
+      type: object
+      description: Details of an uploaded attachment file
+      properties:
+        key:
+          type: string
+          description: S3 object key for the uploaded file
+          example: "events/evt_123456789/attachments/1699123456789_event-schedule.txt"
+        signedUrl:
+          type: string
+          format: uri
+          description: Signed S3 URL for secure access (7-day expiration)
+          example: "https://your-bucket.s3.us-east-1.amazonaws.com/events/evt_123456789/attachments/1699123456789_event-schedule.txt?X-Amz-Algorithm=..."
+        publicUrl:
+          type: string
+          format: uri
+          description: Public S3 URL (requires authentication)
+          example: "https://your-bucket.s3.us-east-1.amazonaws.com/events/evt_123456789/attachments/1699123456789_event-schedule.txt"
+        originalName:
+          type: string
+          description: Original filename as uploaded
+          example: "event-schedule.txt"
+        mimeType:
+          type: string
+          description: MIME type of the uploaded file
+          example: "text/plain"
+        size:
+          type: integer
+          description: File size in bytes
+          example: 2048
+        uploadedAt:
+          type: string
+          format: date-time
+          description: When the file was uploaded
+          example: "2023-11-04T12:30:56.789Z"
+
+    AttachmentAnalysis:
+      type: object
+      description: AI analysis results for an uploaded attachment
+      properties:
+        fileName:
+          type: string
+          description: Original filename
+          example: "event-schedule.txt"
+        fileType:
+          type: string
+          description: File MIME type
+          example: "text/plain"
+        contentLength:
+          type: integer
+          description: Length of extracted content
+          example: 2048
+        sentiment:
+          type: object
+          description: Sentiment analysis results
+          properties:
+            sentiment:
+              type: string
+              enum: [POSITIVE, NEGATIVE, NEUTRAL, MIXED]
+              example: "NEUTRAL"
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+              example: 0.95
+        entities:
+          type: array
+          description: Named entities found in the content
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                example: "Dr. Sarah Johnson"
+              type:
+                type: string
+                enum: [PERSON, LOCATION, ORGANIZATION, DATE, QUANTITY, OTHER]
+                example: "PERSON"
+              score:
+                type: number
+                minimum: 0
+                maximum: 1
+                example: 0.94
+        keyPhrases:
+          type: array
+          description: Key phrases extracted from content
+          items:
+            type: object
+            properties:
+              text:
+                type: string
+                example: "event schedule"
+              score:
+                type: number
+                minimum: 0
+                maximum: 1
+                example: 0.92
+        eventRelevance:
+          type: object
+          description: Assessment of content relevance to event planning
+          properties:
+            score:
+              type: number
+              minimum: 0
+              maximum: 1
+              description: Relevance score (0-1)
+              example: 0.95
+            level:
+              type: string
+              enum: [HIGH, MEDIUM, LOW]
+              description: Relevance level
+              example: "HIGH"
+            matchedKeywords:
+              type: array
+              items:
+                type: string
+              example: ["event", "schedule", "conference", "venue"]
+        keyInformation:
+          type: array
+          description: High-confidence information items for AI queries
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [entity, key_phrase, date, contact]
+                example: "entity"
+              category:
+                type: string
+                example: "PERSON"
+              text:
+                type: string
+                example: "Dr. Sarah Johnson"
+              confidence:
+                type: number
+                minimum: 0
+                maximum: 1
+                example: 0.94
+              importance:
+                type: string
+                enum: [high, medium, low]
+                example: "high"
+        actionableInsights:
+          type: array
+          description: Actionable recommendations for event planning
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                example: "stakeholder_identification"
+              priority:
+                type: string
+                enum: [high, medium, low]
+                example: "medium"
+              message:
+                type: string
+                example: "5 people identified - consider adding to event contact list"
+              category:
+                type: string
+                example: "stakeholder_management"
+              details:
+                type: array
+                items:
+                  type: string
+                example: ["Dr. Sarah Johnson", "Alex Rodriguez", "John Smith"]
+        aiReadyContext:
+          type: string
+          description: Formatted context optimized for AI agent consumption
+          example: |
+            === AI AGENT CONTEXT FOR: event-schedule.txt ===
+            
+            QUICK FACTS:
+            • Document type: text document
+            • Content length: 2048 characters
+            • Language: en
+            • Tone: NEUTRAL (95% confidence)
+            • Event relevance: HIGH
+            
+            KEY INFORMATION FOR AI QUERIES:
+            • PERSON: Dr. Sarah Johnson, Alex Rodriguez, John Smith
+            • LOCATION: Conference Room A, Conference Room B, Workshop Room 1
+            • Key topics: event schedule, AI Technology Summit, crowd management
+            • Important dates: December 15-16, 2023
+            • Contact information: events@techsummit.com
+        searchableKeywords:
+          type: array
+          description: Keywords for efficient content retrieval
+          items:
+            type: string
+          example: ["event", "schedule", "conference", "ai", "technology", "summit", "venue", "speaker", "workshop", "networking"]
+        contextSummary:
+          type: string
+          description: Human-readable summary of the analysis
+          example: |
+            DOCUMENT: event-schedule.txt
+            
+            CONTENT OVERVIEW:
+            - Length: 2048 characters
+            - Language: en
+            - Overall tone: neutral
+            - Main topics: event schedule, AI Technology Summit, crowd management
+            - Event relevance: HIGH (95%)
+            - Important dates: December 15-16, 2023
+            - Contact emails: events@techsummit.com
+        analyzedAt:
+          type: string
+          format: date-time
+          description: When the analysis was performed
+          example: "2023-11-04T12:31:00.000Z"
+
+    SupportedFileTypes:
+      type: object
+      description: Information about supported file types and processing capabilities
+      properties:
+        fullySupported:
+          type: object
+          description: File types with full processing support
+          additionalProperties:
+            type: string
+          example:
+            "text/plain": "Plain text files (.txt) - Direct text extraction with content analysis"
+            "text/csv": "Comma-separated values (.csv) - Structured data extraction with analysis"
+            "application/pdf": "PDF documents (.pdf) - Full text extraction with metadata"
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word documents (.docx) - Complete text extraction"
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel spreadsheets (.xlsx) - Multi-worksheet data extraction"
+            "image/jpeg": "JPEG images (.jpg, .jpeg) - OCR text extraction with AWS Textract"
+            "image/png": "PNG images (.png) - OCR text extraction with AWS Textract"
+        partiallySupported:
+          type: object
+          description: File types with limited support
+          additionalProperties:
+            type: string
+          example:
+            "application/msword": "Legacy Word documents (.doc) - Limited support, convert to .docx recommended"
+            "image/gif": "GIF images (.gif) - Not supported by AWS Textract, convert to JPEG/PNG"
+        maxFileSize:
+          type: string
+          description: Maximum file size allowed
+          example: "50MB (10MB for images due to AWS Textract limits)"
+        processingCapabilities:
+          type: object
+          description: Detailed processing capabilities by file type
+          properties:
+            pdf:
+              type: object
+              properties:
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Full text extraction", "Metadata extraction", "Multi-page support"]
+                metadata:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Title", "Author", "Subject", "Creator", "Producer", "Creation/Modification dates"]
+            excel:
+              type: object
+              properties:
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Multi-worksheet support", "Structured data extraction", "Cell formatting preservation"]
+                formats:
+                  type: array
+                  items:
+                    type: string
+                  example: ["Tab-separated values", "Worksheet metadata", "Range information"]
+            images:
+              type: object
+              properties:
+                features:
+                  type: array
+                  items:
+                    type: string
+                  example: ["OCR text extraction", "Table detection", "Form field extraction", "Confidence scoring"]
+                services:
+                  type: array
+                  items:
+                    type: string
+                  example: ["AWS Textract for advanced document analysis"]
+                limitations:
+                  type: array
+                  items:
+                    type: string
+                  example: ["JPEG and PNG only", "10MB size limit", "Requires good image quality"]
+        recommendations:
+          type: array
+          description: Best practices for file uploads
+          items:
+            type: string
+          example:
+            - "For best AI analysis results, ensure text is clearly readable and well-structured"
+            - "PDF and Word documents provide rich metadata for context"
+            - "Excel files are processed as structured data with worksheet separation"
+            - "Images should have high contrast and horizontal text for best OCR results"
+        aiOptimization:
+          type: array
+          description: AI-specific optimizations
+          items:
+            type: string
+          example:
+            - "All extracted content includes metadata headers for better AI context"
+            - "Structured data (tables, forms) is preserved in readable format"
+            - "File type and extraction method information is included"
+            - "Error messages provide clear guidance for unsupported formats"
 
     Error:
       type: object

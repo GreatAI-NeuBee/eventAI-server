@@ -211,6 +211,93 @@ class S3Service {
   }
 
   /**
+   * Uploads an event attachment file to S3
+   * @param {string} eventId - Event ID for organizing files
+   * @param {Buffer} fileBuffer - File buffer
+   * @param {string} originalName - Original filename
+   * @param {string} mimeType - File MIME type
+   * @returns {Promise<Object>} - Upload result with URLs
+   */
+  async uploadEventAttachment(eventId, fileBuffer, originalName, mimeType) {
+    try {
+      const timestamp = Date.now();
+      const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const key = `events/${eventId}/attachments/${timestamp}_${sanitizedName}`;
+
+      logger.info('Uploading event attachment', { eventId, originalName, key });
+
+      const command = new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+        Body: fileBuffer,
+        ContentType: mimeType,
+        ServerSideEncryption: 'AES256',
+        Metadata: {
+          'uploaded-by': 'event-ai-server',
+          'upload-timestamp': new Date().toISOString(),
+          'event-id': eventId,
+          'original-filename': originalName
+        }
+      });
+
+      await s3Client.send(command);
+
+      // Generate signed URL for access (valid for 7 days)
+      const signedUrl = await this.getPresignedDownloadUrl(key, 7 * 24 * 3600);
+      const publicUrl = `https://${BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
+
+      const result = {
+        key,
+        signedUrl,
+        publicUrl,
+        originalName,
+        mimeType,
+        size: fileBuffer.length,
+        uploadedAt: new Date().toISOString()
+      };
+
+      logger.info('Event attachment uploaded successfully', { eventId, key, size: fileBuffer.length });
+      return result;
+    } catch (error) {
+      logger.error('Error uploading event attachment', { eventId, originalName, error: error.message });
+      throw new Error(`Failed to upload event attachment: ${error.message}`);
+    }
+  }
+
+  /**
+   * Deletes event attachments from S3
+   * @param {Array} attachmentUrls - Array of attachment URLs to delete
+   * @returns {Promise<void>}
+   */
+  async deleteEventAttachments(attachmentUrls) {
+    if (!attachmentUrls || attachmentUrls.length === 0) {
+      return;
+    }
+
+    try {
+      logger.info('Deleting event attachments', { count: attachmentUrls.length });
+
+      // Extract S3 keys from URLs
+      const keys = attachmentUrls.map(url => {
+        if (typeof url === 'string') {
+          // Handle both signed URLs and regular S3 URLs
+          const match = url.match(/amazonaws\.com\/(.+?)(\?|$)/);
+          return match ? match[1] : null;
+        }
+        return null;
+      }).filter(key => key !== null);
+
+      if (keys.length > 0) {
+        await this.deleteObjects(keys);
+        logger.info('Event attachments deleted successfully', { deletedCount: keys.length });
+      }
+    } catch (error) {
+      logger.error('Error deleting event attachments', { error: error.message });
+      throw new Error(`Failed to delete event attachments: ${error.message}`);
+    }
+  }
+
+  /**
    * Generates a pre-signed URL for direct upload
    * @param {string} key - S3 object key
    * @param {number} expiresIn - Expiration time in seconds (default: 3600)
