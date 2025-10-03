@@ -64,7 +64,7 @@ class EventService {
         .from('events')
         .insert(eventRecord)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -96,7 +96,7 @@ class EventService {
       const { data: event, error } = await this.client
         .from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, created_at, updated_at
         `)
         .eq('event_id', eventId)
         .single();
@@ -171,7 +171,7 @@ class EventService {
       // Get events data
       let dataQuery = this.client.from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, created_at, updated_at
         `)
         .order('date_of_event_start', { ascending: true })
         .range(offset, offset + limit - 1);
@@ -246,6 +246,7 @@ class EventService {
       if (updateData.userEmail) updateFields.user_email = updateData.userEmail;
       if (updateData.forecastResult !== undefined) updateFields.forecast_result = updateData.forecastResult;
       if (updateData.attachmentUrls !== undefined) updateFields.attachment_urls = updateData.attachmentUrls;
+      if (updateData.attachmentFilenames !== undefined) updateFields.attachment_filenames = updateData.attachmentFilenames;
       if (updateData.attachmentContext !== undefined) updateFields.attachment_context = updateData.attachmentContext;
 
       const { data: event, error } = await this.client
@@ -253,7 +254,7 @@ class EventService {
         .update(updateFields)
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -282,7 +283,7 @@ class EventService {
         .update({ forecast_result: forecastResult })
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_context, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, created_at, updated_at
         `)
         .single();
 
@@ -370,6 +371,7 @@ class EventService {
       userEmail: event.user_email,
       forecastResult: event.forecast_result,
       attachmentUrls: event.attachment_urls,
+      attachmentFilenames: event.attachment_filenames,
       attachmentContext: event.attachment_context,
       createdAt: event.created_at,
       updatedAt: event.updated_at

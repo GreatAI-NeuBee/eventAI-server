@@ -823,6 +823,12 @@ paths:
                         type: integer
                         description: Total number of attachments for this event
                         example: 5
+                      attachmentFilenames:
+                        type: array
+                        description: Array of all attachment filenames for this event
+                        items:
+                          type: string
+                        example: ["event-plan.pdf", "venue-map.jpg", "eventFlow.csv"]
                       uploads:
                         type: array
                         description: Details of uploaded files
@@ -1729,6 +1735,12 @@ components:
             type: string
             format: uri
           example: ["https://example.com/event-plan.pdf", "https://example.com/venue-map.jpg"]
+        attachmentFilenames:
+          type: array
+          description: Array of original attachment filenames corresponding to attachment URLs
+          items:
+            type: string
+          example: ["event-plan.pdf", "venue-map.jpg", "eventFlow.csv"]
         attachmentContext:
           type: string
           description: Text interpretation/context of attachments for AI chatbot knowledge base

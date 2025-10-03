@@ -6,7 +6,6 @@ const multer = require('multer');
 
 const eventService = require('../services/eventService');
 const s3Service = require('../services/s3Service');
-const comprehendService = require('../services/comprehendService');
 const fileProcessor = require('../utils/fileProcessor');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
@@ -616,34 +615,15 @@ router.post('/:eventId/uploadEventAttachments', upload.array('files', 10), async
           file.originalname
         );
 
-        // Analyze with AWS Comprehend (if we have meaningful text content)
-        let analysisResult = null;
-        if (textContent && textContent.length > 50) {
-          try {
-            analysisResult = await comprehendService.analyzeEventFile(
-              textContent,
-              file.originalname,
-              file.mimetype
-            );
-          } catch (analysisError) {
-            logger.warn('Comprehend analysis failed, continuing without analysis', {
-              eventId,
-              fileName: file.originalname,
-              error: analysisError.message
-            });
-            analysisResult = {
-              fileName: file.originalname,
-              error: 'Analysis failed',
-              textContent: textContent.substring(0, 500) + '...'
-            };
-          }
-        } else {
-          analysisResult = {
-            fileName: file.originalname,
-            message: 'File content not suitable for text analysis',
-            textContent: textContent.substring(0, 500) + '...'
-          };
-        }
+        // Create analysis result with extracted text content (no Comprehend)
+        const analysisResult = {
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          extractedContent: textContent,
+          contentLength: textContent.length,
+          processedAt: new Date().toISOString(),
+          message: textContent.length > 50 ? 'Text content extracted successfully' : 'Limited text content extracted'
+        };
 
         analysisResults.push(analysisResult);
 
@@ -660,24 +640,29 @@ router.post('/:eventId/uploadEventAttachments', upload.array('files', 10), async
       }
     }
 
-    // Update event with attachment URLs and context
+    // Update event with attachment URLs, filenames, and context
     if (uploadResults.length > 0) {
       const currentAttachmentUrls = existingEvent.attachmentUrls || [];
+      const currentAttachmentFilenames = existingEvent.attachmentFilenames || [];
+      
       const newAttachmentUrls = uploadResults.map(result => result.signedUrl);
+      const newAttachmentFilenames = uploadResults.map(result => result.originalName);
+      
       const updatedAttachmentUrls = [...currentAttachmentUrls, ...newAttachmentUrls];
+      const updatedAttachmentFilenames = [...currentAttachmentFilenames, ...newAttachmentFilenames];
 
-      // Compile comprehensive AI context
+      // Compile extracted content as attachment context
       const analysisContext = analysisResults
         .filter(result => result && !result.error)
         .map(result => {
-          if (result.aiReadyContext) {
-            // Use the comprehensive AI-ready context
-            return result.aiReadyContext;
-          } else if (result.contextSummary) {
-            return result.contextSummary;
-          } else {
-            return `File: ${result.fileName}\n${result.message || 'No analysis available'}\n`;
-          }
+          const header = `=== FILE: ${result.fileName} ===\n` +
+                        `File Type: ${result.fileType}\n` +
+                        `Content Length: ${result.contentLength} characters\n` +
+                        `Processed At: ${result.processedAt}\n` +
+                        `Status: ${result.message}\n\n` +
+                        `--- EXTRACTED CONTENT ---\n\n`;
+          
+          return header + (result.extractedContent || 'No content extracted');
         })
         .join('\n' + '='.repeat(80) + '\n');
 
@@ -689,12 +674,14 @@ router.post('/:eventId/uploadEventAttachments', upload.array('files', 10), async
       // Update event in database
       const updatedEvent = await eventService.updateEvent(eventId, {
         attachmentUrls: updatedAttachmentUrls,
+        attachmentFilenames: updatedAttachmentFilenames,
         attachmentContext: updatedContext
       });
 
       logger.info('Event attachments updated successfully', {
         eventId,
         totalAttachments: updatedAttachmentUrls.length,
+        totalFilenames: updatedAttachmentFilenames.length,
         newAttachments: uploadResults.length
       });
 
@@ -705,6 +692,7 @@ router.post('/:eventId/uploadEventAttachments', upload.array('files', 10), async
           eventId,
           uploadedFiles: uploadResults.length,
           totalAttachments: updatedAttachmentUrls.length,
+          attachmentFilenames: updatedAttachmentFilenames,
           uploads: uploadResults,
           analysis: analysisResults,
           event: updatedEvent
