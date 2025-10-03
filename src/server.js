@@ -14,9 +14,13 @@ require('dotenv').config();
 const eventController = require('./controllers/newEventController');
 const forecastController = require('./controllers/forecastController');
 const userController = require('./controllers/userController');
+const predictionController = require('./controllers/predictionController');
 
 // Import middleware
 const errorHandler = require('./utils/errorHandler');
+
+// Import services
+const cronService = require('./services/cronService');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -481,6 +485,12 @@ app.get('/', (req, res) => {
   });
 });
 
+// API Routes
+app.use('/api/v1/users', userController);
+app.use('/api/v1/events', eventController);
+app.use('/api/v1/forecast', forecastController);
+app.use('/api/v1/prediction', predictionController);
+
 // 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({
@@ -506,6 +516,7 @@ process.on('unhandledRejection', (reason, promise) => {
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  cronService.stop();
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
@@ -514,6 +525,7 @@ process.on('SIGTERM', () => {
 
 process.on('SIGINT', () => {
   logger.info('SIGINT received, shutting down gracefully');
+  cronService.stop();
   server.close(() => {
     logger.info('Process terminated');
     process.exit(0);
@@ -542,6 +554,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
         logger.error('❌ Supabase connection error:', error.message);
       });
   }
+  
+  // Initialize cron service for predictions
+  cronService.start();
 });
 
 module.exports = app;
