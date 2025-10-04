@@ -21,7 +21,7 @@ const logger = winston.createLogger({
 class ForecastService {
   constructor() {
     this.aiModelEndpoint = process.env.AI_MODEL_ENDPOINT || 'http://localhost:8080/predict';
-    this.newModelEndpoint = 'http://43.216.25.126/forecast_inout';
+    this.newModelEndpoint = process.env.FORECAST_MODEL_ENDPOINT || 'http://56.68.21.46/forecast_inout';
     this.modelTimeout = parseInt(process.env.MODEL_TIMEOUT) || 30000; // 30 seconds
   }
 
