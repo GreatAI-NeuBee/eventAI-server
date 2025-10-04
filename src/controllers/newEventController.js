@@ -7,6 +7,7 @@ const multer = require('multer');
 const eventService = require('../services/eventService');
 const s3Service = require('../services/s3Service');
 const fileProcessor = require('../utils/fileProcessor');
+const bedrockService = require('../services/bedrockService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -184,10 +185,10 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     });
   }
 
-  const { name, description, venue, dateOfEventStart, dateOfEventEnd, status, venueLayout, userEmail } = req.body;
+  const { name, description, venue, dateOfEventStart, dateOfEventEnd, status, venueLayout, userEmail, popularity } = req.body;
   const eventId = `evt_${uuidv4()}`;
 
-  logger.info('Creating new event', { eventId, name });
+  logger.info('Creating new event', { eventId, name, hasPopularity: !!popularity });
 
   try {
     const eventData = {
@@ -202,6 +203,38 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
       userEmail
     };
 
+    // Handle popularity analysis if provided
+    if (popularity) {
+      // Validate popularity data
+      const validation = bedrockService.validatePopularityData(popularity);
+      if (!validation.valid) {
+        logger.warn('Invalid popularity data', { eventId, errors: validation.errors });
+        return res.status(400).json({
+          success: false,
+          error: {
+            status: 'fail',
+            message: 'Invalid popularity data',
+            details: validation.errors
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      // Store the popularity data
+      eventData.popularity = popularity;
+
+      // Analyze event popularity with AWS Bedrock Nova Lite
+      logger.info('Analyzing event popularity with Bedrock', { eventId, popularity });
+      const popularityExtent = await bedrockService.analyzeEventPopularity(popularity);
+      eventData.popularityExtent = popularityExtent;
+
+      logger.info('Popularity analysis completed', { 
+        eventId, 
+        popularityScore: popularityExtent.popularityScore,
+        hasError: popularityExtent.error || false
+      });
+    }
+
     const event = await eventService.createEvent(eventData);
 
     logger.info('Event created successfully', { eventId, name });
@@ -209,7 +242,14 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     res.status(201).json({
       success: true,
       data: event,
-      message: 'Event created successfully'
+      message: 'Event created successfully',
+      ...(popularity && event.popularityExtent && !event.popularityExtent.error ? {
+        popularityAnalysis: {
+          score: event.popularityExtent.popularityScore,
+          expectedTurnout: event.popularityExtent.expectedTurnout,
+          recommendations: event.popularityExtent.recommendations
+        }
+      } : {})
     });
 
   } catch (error) {

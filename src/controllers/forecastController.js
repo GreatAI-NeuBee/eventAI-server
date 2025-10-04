@@ -4,7 +4,7 @@ const winston = require('winston');
 
 const forecastService = require('../services/forecastService');
 const eventService = require('../services/eventService');
-const { getIncidentRecommendation } = require('../services/bedrockService');
+const bedrockService = require('../services/bedrockService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -88,7 +88,7 @@ const validateNewForecastGeneration = [
 
 /**
  * POST /forecast
- * New forecast endpoint that calls the model at http://43.216.25.126/forecast_inout
+ * New forecast endpoint that calls the configured forecast model
  */
 router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) => {
   // Check for validation errors
@@ -184,7 +184,7 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
     logger.info('Forecast generated successfully', { eventid });
 
     // Added Bedrock Recommendation (jiayin - 5/10/25)
-    const bedrockRecommendation = await getIncidentRecommendation(forecastResult, forecastData);
+    const bedrockRecommendation = await bedrockService.getIncidentRecommendation(forecastResult, forecastData);
 
     logger.info('Forecast and Bedrock recommendation generated successfully', { eventid });
 
@@ -545,7 +545,7 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        modelEndpoint: 'http://43.216.25.126/forecast_inout',
+        modelEndpoint: process.env.FORECAST_MODEL_ENDPOINT || 'http://56.68.21.46/forecast_inout',
         isHealthy,
         checkedAt: new Date().toISOString(),
         type: 'new'
@@ -564,7 +564,7 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
         code: 'SERVICE_UNAVAILABLE'
       },
       data: {
-        modelEndpoint: 'http://43.216.25.126/forecast_inout',
+        modelEndpoint: process.env.FORECAST_MODEL_ENDPOINT || 'http://56.68.21.46/forecast_inout',
         isHealthy: false,
         checkedAt: new Date().toISOString(),
         type: 'new'
