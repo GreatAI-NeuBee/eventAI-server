@@ -87,7 +87,7 @@ const validateNewForecastGeneration = [
 
 /**
  * POST /forecast
- * New forecast endpoint that calls the model at http://43.216.25.126/forecast_inout
+ * New forecast endpoint that calls the configured forecast model
  */
 router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) => {
   // Check for validation errors
@@ -535,7 +535,7 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        modelEndpoint: 'http://43.216.25.126/forecast_inout',
+        modelEndpoint: process.env.FORECAST_MODEL_ENDPOINT || 'http://56.68.21.46/forecast_inout',
         isHealthy,
         checkedAt: new Date().toISOString(),
         type: 'new'
@@ -554,7 +554,7 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
         code: 'SERVICE_UNAVAILABLE'
       },
       data: {
-        modelEndpoint: 'http://43.216.25.126/forecast_inout',
+        modelEndpoint: process.env.FORECAST_MODEL_ENDPOINT || 'http://56.68.21.46/forecast_inout',
         isHealthy: false,
         checkedAt: new Date().toISOString(),
         type: 'new'

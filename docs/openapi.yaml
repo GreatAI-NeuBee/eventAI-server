@@ -691,6 +691,8 @@ paths:
                   description: Text interpretation/context of attachments for AI chatbot knowledge base
                   maxLength: 10000
                   example: "Event plan includes detailed schedule and safety protocols. Venue map shows emergency exits and first aid stations."
+                popularity:
+                  $ref: '#/components/schemas/EventPopularity'
       responses:
         '200':
           description: Event updated successfully
@@ -2023,6 +2025,10 @@ components:
           type: string
           description: Text interpretation/context of attachments for AI chatbot knowledge base
           example: "Event plan includes detailed schedule and safety protocols. Venue map shows emergency exits and first aid stations."
+        popularity:
+          $ref: '#/components/schemas/EventPopularity'
+        popularityExtent:
+          $ref: '#/components/schemas/PopularityExtent'
         createdAt:
           type: string
           format: date-time
@@ -2820,6 +2826,226 @@ components:
             error: "Internal server error"
             code: "INTERNAL_ERROR"
 
+    EventPopularity:
+      type: object
+      description: Event popularity information provided by user
+      required:
+        - type
+        - feat
+        - location
+      properties:
+        type:
+          type: string
+          enum: [concert, event]
+          description: Type of event
+          example: "concert"
+        feat:
+          type: string
+          description: Featured artists or personalities
+          example: "Blackpink, Bigbang"
+        location:
+          type: string
+          description: Event location (country or city)
+          example: "Malaysia"
+
+    PopularityExtent:
+      type: object
+      description: AI-analyzed operational insights and safety recommendations from AWS Bedrock Nova Lite
+      properties:
+        popularityScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Overall popularity score
+          example: 85
+        popularityLevel:
+          type: string
+          enum: ["Very High", "High", "Medium", "Low"]
+          description: Categorical popularity level
+          example: "High"
+        expectedTurnout:
+          type: object
+          properties:
+            minimum:
+              type: integer
+              example: 8000
+            expected:
+              type: integer
+              example: 12000
+            maximum:
+              type: integer
+              example: 15000
+        audienceDemographics:
+          type: object
+          properties:
+            ageGroups:
+              type: object
+              properties:
+                children:
+                  type: number
+                  description: Percentage of children (0-12)
+                  example: 5
+                teens:
+                  type: number
+                  description: Percentage of teens (13-17)
+                  example: 15
+                youngAdults:
+                  type: number
+                  description: Percentage of young adults (18-35)
+                  example: 40
+                middleAged:
+                  type: number
+                  description: Percentage of middle-aged (36-55)
+                  example: 30
+                seniors:
+                  type: number
+                  description: Percentage of seniors (56+)
+                  example: 10
+            primaryAgeRange:
+              type: string
+              example: "25-45 years old"
+            mobilityConsiderations:
+              type: string
+              example: "Moderate elderly presence; provide wheelchair access and assistance"
+            behaviorProfile:
+              type: string
+              example: "Generally calm and orderly, but may rush during entry"
+        crowdFlowAnalysis:
+          type: object
+          properties:
+            entrySpeed:
+              type: string
+              enum: ["Fast", "Moderate", "Slow"]
+              example: "Moderate"
+            entrySpeedRationale:
+              type: string
+              example: "Mixed age demographics with 10% elderly attendees will slow entry"
+            peakCongestionTimes:
+              type: array
+              items:
+                type: string
+              example: ["30 minutes before event start", "Immediately after event ends"]
+            bottleneckAreas:
+              type: array
+              items:
+                type: string
+              example: ["Main entrance", "Parking area", "Merchandise booths"]
+        historicalIncidents:
+          type: array
+          items:
+            type: object
+            properties:
+              incident:
+                type: string
+              date:
+                type: string
+              casualties:
+                type: string
+              cause:
+                type: string
+          example:
+            - incident: "Crowd crush during entry"
+              date: "2018-05-12"
+              casualties: "15 injured"
+              cause: "Inadequate crowd control barriers"
+        riskAssessment:
+          type: object
+          properties:
+            highRisks:
+              type: array
+              items:
+                type: string
+              example: ["Crowd crush at main entrance", "Elderly attendees requiring assistance"]
+            mediumRisks:
+              type: array
+              items:
+                type: string
+              example: ["Parking congestion", "Medical emergencies"]
+            weatherRelatedRisks:
+              type: array
+              items:
+                type: string
+              example: ["Heavy rain may cause slippery surfaces", "Heat stroke risk in tropical climate"]
+        operationalRecommendations:
+          type: object
+          properties:
+            staffingRequirements:
+              type: object
+              properties:
+                securityPersonnel:
+                  type: integer
+                  example: 50
+                medicalStaff:
+                  type: integer
+                  example: 10
+                crowdControlOfficers:
+                  type: integer
+                  example: 30
+                assistanceStaff:
+                  type: integer
+                  example: 15
+                rationale:
+                  type: string
+                  example: "Based on 12,000 expected attendees with 10% elderly requiring assistance"
+            entranceManagement:
+              type: array
+              items:
+                type: string
+              example: 
+                - "Open gates 2 hours early for elderly and disabled ticket holders"
+                - "Use separate lanes for VIP and general admission"
+            crowdControl:
+              type: array
+              items:
+                type: string
+              example:
+                - "Install crowd control barriers in queue areas"
+                - "Deploy staff at all choke points"
+            emergencyPreparedness:
+              type: array
+              items:
+                type: string
+              example:
+                - "Establish clear evacuation routes with signage"
+                - "Station ambulances at all major exits"
+            specialConsiderations:
+              type: array
+              items:
+                type: string
+              example:
+                - "Provide wheelchair access at all entrances"
+                - "Set up shaded rest areas for elderly attendees"
+        safetyMeasures:
+          type: object
+          properties:
+            mandatory:
+              type: array
+              items:
+                type: string
+              example: ["Fire safety equipment", "Emergency medical team on standby"]
+            recommended:
+              type: array
+              items:
+                type: string
+              example: ["CCTV monitoring", "Real-time crowd density tracking"]
+            equipmentNeeded:
+              type: array
+              items:
+                type: string
+              example: ["Wheelchairs", "First aid kits", "Crowd barriers", "Defibrillators"]
+        metadata:
+          type: object
+          properties:
+            analyzedAt:
+              type: string
+              format: date-time
+            modelId:
+              type: string
+              example: "amazon.nova-lite-v1:0"
+            modelVersion:
+              type: string
+              example: "nova-lite-v1"
+
   securitySchemes:
     ApiKeyAuth:
       type: apiKey
@@ -2841,3 +3067,7 @@ tags:
     description: AI simulation operations
   - name: Forecast
     description: AI-powered crowd forecasting operations
+  - name: Prediction
+    description: Real-time crowd prediction and comparison operations
+  - name: Debug
+    description: Debug and diagnostic endpoints
