@@ -1,5 +1,6 @@
 const { BedrockRuntimeClient, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
 const winston = require('winston');
+const { generateRecommendationPrompt } = require("../utils/promptGenerator");
 
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -20,7 +21,7 @@ class BedrockService {
   constructor() {
     // Use ap-southeast-5 region if available, since user has access there
     const region = 'us-east-1';
-    
+
     this.client = new BedrockRuntimeClient({
       region: region,
       credentials: {
@@ -28,17 +29,17 @@ class BedrockService {
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
       }
     });
-    
+
     // AWS Bedrock Nova Lite configuration
     // MUST use inference profile ARN - modelId is not supported in this region
     this.inferenceProfileArn = process.env.BEDROCK_INFERENCE_PROFILE_ARN;
-    
+
     if (!this.inferenceProfileArn) {
       logger.error('BEDROCK_INFERENCE_PROFILE_ARN is required but not set in environment variables');
       throw new Error('BEDROCK_INFERENCE_PROFILE_ARN environment variable is required for Bedrock access');
     }
-    
-    logger.info('BedrockService initialized', { 
+
+    logger.info('BedrockService initialized', {
       region: region,
       inferenceProfileArn: this.inferenceProfileArn
     });
@@ -56,10 +57,10 @@ class BedrockService {
     try {
       const { type, feat, location } = popularityData;
 
-      logger.info('Analyzing event popularity with Bedrock', { 
-        type, 
-        feat, 
-        location 
+      logger.info('Analyzing event popularity with Bedrock', {
+        type,
+        feat,
+        location
       });
 
       // Construct the prompt for Nova Lite
@@ -168,23 +169,23 @@ Focus on practical, actionable operational insights. Base your analysis on known
         body: JSON.stringify(payload)
       });
 
-      logger.info('Invoking Bedrock Nova Lite model', { 
+      logger.info('Invoking Bedrock Nova Lite model', {
         modelId: this.inferenceProfileArn
       });
-      
+
       const response = await this.client.send(command);
-      
+
       // Parse the response
       const responseBody = JSON.parse(new TextDecoder().decode(response.body));
-      
-      logger.info('Bedrock response received', { 
+
+      logger.info('Bedrock response received', {
         stopReason: responseBody.stopReason,
-        outputTokens: responseBody.usage?.outputTokens 
+        outputTokens: responseBody.usage?.outputTokens
       });
 
       // Extract the content from Nova Lite response
       const content = responseBody.output?.message?.content?.[0]?.text || responseBody.content?.[0]?.text;
-      
+
       if (!content) {
         throw new Error('No content in Bedrock response');
       }
@@ -200,11 +201,11 @@ Focus on practical, actionable operational insights. Base your analysis on known
           analysisResult = JSON.parse(content);
         }
       } catch (parseError) {
-        logger.error('Failed to parse Bedrock JSON response', { 
+        logger.error('Failed to parse Bedrock JSON response', {
           error: parseError.message,
-          content: content.substring(0, 200) 
+          content: content.substring(0, 200)
         });
-        
+
         // Fallback: return a basic analysis if JSON parsing fails
         analysisResult = {
           popularityScore: 50,
@@ -275,12 +276,12 @@ Focus on practical, actionable operational insights. Base your analysis on known
       return analysisResult;
 
     } catch (error) {
-      logger.error('Error analyzing event popularity', { 
+      logger.error('Error analyzing event popularity', {
         error: error.message,
         errorCode: error.name,
-        popularityData 
+        popularityData
       });
-      
+
       // Return a fallback response instead of throwing
       return {
         error: true,
@@ -339,6 +340,67 @@ Focus on practical, actionable operational insights. Base your analysis on known
           error: error.message
         }
       };
+    }
+  }
+
+  async getIncidentRecommendation(forecastResult, forecastData) {
+    const modelId = "amazon.nova-lite-v1:0";
+    const prompt = generateRecommendationPrompt(forecastResult, forecastData);
+
+    const input = {
+      modelId,
+      contentType: "application/json",
+      accept: "application/json",
+      body: JSON.stringify({
+        messages: [
+          {
+            role: "user",
+            content: [{ text: prompt }],
+          }
+        ],
+        inferenceConfig: {
+          temperature: 0.7,
+          topP: 0.9,
+          // maxOutputTokens: 400
+        }
+      })
+    };
+
+    try {
+      const command = new InvokeModelCommand(input);
+      const response = await this.client.send(command);
+
+      const decoded = new TextDecoder().decode(response.body);
+      const parsed = JSON.parse(decoded);
+
+      // Extract AI output text
+      let recommendationJSON;
+      try {
+        let outputText = parsed.output?.message?.content?.[0]?.text || "{}";
+
+        // Remove markdown code fences if present
+        outputText = outputText.replace(/^```json\s*|\s*```$/g, "").trim();
+
+        recommendationJSON = JSON.parse(outputText);
+
+        // Ensure always has gates & generalRecommendations
+        recommendationJSON.gates = recommendationJSON.gates || [];
+        recommendationJSON.generalRecommendations = recommendationJSON.generalRecommendations || [];
+      } catch (jsonErr) {
+        console.warn("AI returned invalid JSON, returning fallback structure", jsonErr);
+        recommendationJSON = {
+          gates: [],
+          generalRecommendations: ["AI response invalid, no recommendations available"],
+          rawText: parsed
+        };
+      }
+
+
+      return recommendationJSON;
+
+    } catch (err) {
+      console.error("Error calling Bedrock AI for incident recommendation", err);
+      return { error: "Failed to get AI recommendations", details: err.message };
     }
   }
 
@@ -432,4 +494,3 @@ Focus on practical, actionable operational insights. Base your analysis on known
 }
 
 module.exports = new BedrockService();
-
