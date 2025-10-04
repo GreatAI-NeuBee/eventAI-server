@@ -7,6 +7,127 @@ const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
 
+/**
+ * Formats forecast and prediction data for frontend line graph comparison
+ */
+function formatForecastVsPredictionData(event) {
+  const forecastResult = event.forecastResult;
+  const predictResult = event.predictResult;
+  
+  // Extract gates information from forecast
+  const gates = forecastResult.summary?.gates || [];
+  const forecastPredictions = forecastResult.summary?.predictions || [];
+  
+  // Create timeline from forecast period
+  const forecastPeriod = forecastResult.summary?.forecastPeriod;
+  const startTime = new Date(forecastPeriod?.start || event.dateOfEventStart);
+  const endTime = new Date(forecastPeriod?.end || event.dateOfEventEnd);
+  
+  // Generate 5-minute intervals for the timeline
+  const timeline = [];
+  const current = new Date(startTime);
+  while (current <= endTime) {
+    timeline.push(new Date(current));
+    current.setMinutes(current.getMinutes() + 5);
+  }
+  
+  // Format data for each gate
+  const gateData = gates.map(gateId => {
+    const forecastData = forecastPredictions.find(p => p.gate === gateId) || {};
+    
+    // Create forecast line (complete data)
+    const forecastLine = timeline.map(time => ({
+      timestamp: time.toISOString(),
+      time: time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
+      // Use average prediction as baseline, you might want to use actual forecast data if available
+      forecastCount: forecastData.avgPrediction || 0,
+      capacity: forecastData.capacity || 0
+    }));
+    
+    // Create prediction line (partial data that builds up over time)
+    const predictionLine = [];
+    if (predictResult && predictResult.predictions) {
+      // Map gate IDs: forecast uses "1","2","A","B" while predictions use "gate_1","gate_2","gate_3"
+      const gateMapping = {
+        '1': ['gate_1', '1'],
+        '2': ['gate_2', '2'], 
+        'A': ['gate_3', 'A', 'gate_A'],
+        'B': ['gate_4', 'B', 'gate_B']
+      };
+      
+      // Find predictions for this gate using flexible matching
+      const gatePredictions = predictResult.predictions.filter(p => {
+        const possibleIds = gateMapping[gateId] || [gateId];
+        return possibleIds.some(id => 
+          p.gate_id === id || p.gate === id || p.gate_id === gateId || p.gate === gateId
+        );
+      });
+      
+      gatePredictions.forEach(prediction => {
+        if (prediction.forecast_next_5_min) {
+          predictionLine.push({
+            timestamp: prediction.timestamp || new Date().toISOString(),
+            time: new Date(prediction.timestamp || new Date()).toLocaleTimeString('en-US', { 
+              hour12: false, 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            }),
+            predictedCount: prediction.forecast_next_5_min.predicted_people_count || 0,
+            congestionLevel: prediction.forecast_next_5_min.predicted_congestion_level || 'Unknown',
+            riskScore: prediction.forecast_next_5_min.risk_score || 0,
+            currentCount: prediction.current_people_count || 0,
+            confidenceScore: prediction.confidence_score || 0
+          });
+        }
+      });
+    }
+    
+    return {
+      gateId,
+      gateName: `Gate ${gateId}`,
+      capacity: forecastData.capacity || 0,
+      forecast: {
+        complete: true,
+        dataPoints: forecastLine,
+        avgPrediction: forecastData.avgPrediction || 0,
+        peakPrediction: forecastData.peakPrediction || 0
+      },
+      prediction: {
+        complete: predictionLine.length >= timeline.length,
+        dataPoints: predictionLine,
+        lastUpdated: predictionLine.length > 0 ? predictionLine[predictionLine.length - 1].timestamp : null,
+        progress: timeline.length > 0 ? Math.round((predictionLine.length / timeline.length) * 100) : 0
+      }
+    };
+  });
+  
+  return {
+    eventId: event.eventId,
+    eventName: event.name,
+    eventPeriod: {
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
+      duration: Math.round((endTime - startTime) / (1000 * 60)) // minutes
+    },
+    timeline: {
+      intervals: timeline.map(t => ({
+        timestamp: t.toISOString(),
+        time: t.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })
+      })),
+      intervalMinutes: 5,
+      totalIntervals: timeline.length
+    },
+    gates: gateData,
+    summary: {
+      totalGates: gates.length,
+      forecastAvailable: !!forecastResult,
+      predictionAvailable: !!predictResult,
+      lastPredictionUpdate: predictResult ? (predictResult.processedAt || predictResult.timestamp || event.updatedAt) : null,
+      overallProgress: gateData.length > 0 ? Math.round(gateData.reduce((sum, gate) => sum + gate.prediction.progress, 0) / gateData.length) : 0
+    }
+  };
+}
+
 // Configure logger
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
@@ -34,7 +155,7 @@ router.post('/:eventId', asyncHandler(async (req, res) => {
 
   try {
     // Get event with forecast_result
-    const event = await eventService.getEvent(eventId);
+    const event = await eventService.getEventById(eventId);
     
     if (!event) {
       return res.status(404).json({
@@ -123,7 +244,7 @@ router.get('/:eventId', asyncHandler(async (req, res) => {
   logger.info('Retrieving prediction result for event', { eventId });
 
   try {
-    const event = await eventService.getEvent(eventId);
+    const event = await eventService.getEventById(eventId);
     
     if (!event) {
       return res.status(404).json({
@@ -189,6 +310,59 @@ router.get('/health/model', asyncHandler(async (req, res) => {
       timestamp: new Date().toISOString(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
+  }
+}));
+
+/**
+ * GET /prediction/:eventId/comparison
+ * Gets formatted comparison data between forecast and prediction results for line graphs
+ */
+router.get('/:eventId/comparison', asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+
+  logger.info('Getting forecast vs prediction comparison data', { eventId });
+
+  try {
+    const event = await eventService.getEventById(eventId);
+    
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    if (!event.forecastResult) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event must have forecast_result for comparison',
+          code: 'FORECAST_REQUIRED'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Format comparison data
+    const comparisonData = formatForecastVsPredictionData(event);
+
+    res.status(200).json({
+      success: true,
+      data: comparisonData,
+      message: 'Forecast vs prediction comparison data retrieved successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error getting comparison data', { eventId, error: error.message });
+    throw new AppError('Failed to get comparison data', 500, error.message);
   }
 }));
 

@@ -1606,6 +1606,284 @@ paths:
                         type: string
                         example: "SERVICE_UNAVAILABLE"
 
+  /api/v1/prediction/{eventId}:
+    post:
+      summary: Generate prediction for event
+      description: |
+        Manually triggers a prediction for a specific event and saves the result.
+        Requires the event to have a forecast_result to generate predictions from.
+      tags:
+        - Prediction
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID to generate prediction for
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      responses:
+        '200':
+          description: Prediction generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PredictionResult'
+                  message:
+                    type: string
+                    example: "Prediction generated and saved successfully"
+        '400':
+          description: Event does not have forecast data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "Event does not have a forecast result to generate predictions from"
+                  code: "NO_FORECAST_DATA"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    
+    get:
+      summary: Get prediction result for event
+      description: Retrieves the latest prediction result for a specific event
+      tags:
+        - Prediction
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID to get prediction for
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      responses:
+        '200':
+          description: Prediction result retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/PredictionResult'
+                  message:
+                    type: string
+                    example: "Prediction result retrieved successfully"
+        '404':
+          description: Event not found or no prediction result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "No prediction result found for this event"
+                  code: "NO_PREDICTION_RESULT"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/prediction/{eventId}/comparison:
+    get:
+      summary: Get forecast vs prediction comparison data
+      description: |
+        Gets formatted comparison data between forecast and prediction results for line graphs.
+        Returns timeline-aligned data showing complete forecast vs growing prediction data.
+      tags:
+        - Prediction
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID to get comparison data for
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      responses:
+        '200':
+          description: Comparison data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/ForecastVsPredictionComparison'
+                  message:
+                    type: string
+                    example: "Forecast vs prediction comparison data retrieved successfully"
+        '400':
+          description: Event must have forecast result for comparison
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  status: "fail"
+                  message: "Event must have forecast_result for comparison"
+                  code: "FORECAST_REQUIRED"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/prediction/health/model:
+    get:
+      summary: Check prediction model health
+      description: Checks the health status of the external prediction model service
+      tags:
+        - Prediction
+      responses:
+        '200':
+          description: Prediction model is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      modelEndpoint:
+                        type: string
+                        example: "http://56.68.30.73/predict"
+                      isHealthy:
+                        type: boolean
+                        example: true
+                      checkedAt:
+                        type: string
+                        format: date-time
+                        example: "2025-10-03T17:20:00.000Z"
+                      message:
+                        type: string
+                        example: "Service is healthy"
+                  message:
+                    type: string
+                    example: "Prediction model service is healthy"
+        '503':
+          description: Prediction model service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  status: "error"
+                  message: "Prediction model service unavailable"
+                  code: "SERVICE_UNAVAILABLE"
+
+  /api/v1/prediction/debug/events:
+    get:
+      summary: Debug events for prediction updates
+      description: |
+        Debug endpoint to see which events would be selected for prediction updates.
+        Shows server time, timeline info, and which events are eligible for cron job updates.
+      tags:
+        - Prediction
+        - Debug
+      responses:
+        '200':
+          description: Debug information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      serverTime:
+                        type: object
+                        properties:
+                          current:
+                            type: string
+                            format: date-time
+                            example: "2025-10-03T17:20:00.000Z"
+                          currentLocal:
+                            type: string
+                            example: "Fri Oct 03 2025 17:20:00 GMT+0000"
+                          timezone:
+                            type: string
+                            example: "UTC"
+                          todayStart:
+                            type: string
+                            format: date-time
+                            example: "2025-10-03T00:00:00.000Z"
+                          todayEnd:
+                            type: string
+                            format: date-time
+                            example: "2025-10-03T23:59:59.999Z"
+                      selectedEvents:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            eventId:
+                              type: string
+                              example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+                            name:
+                              type: string
+                              example: "Concert Event"
+                            dateOfEventStart:
+                              type: string
+                              format: date-time
+                            dateOfEventEnd:
+                              type: string
+                              format: date-time
+                            hasForecastResult:
+                              type: boolean
+                              example: true
+                            status:
+                              type: string
+                              example: "CREATED"
+                      totalSelectedEvents:
+                        type: integer
+                        example: 1
+                      totalActiveEvents:
+                        type: integer
+                        example: 60
+                  message:
+                    type: string
+                    example: "Debug information for prediction events"
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
 components:
   schemas:
     User:

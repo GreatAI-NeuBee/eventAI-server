@@ -249,7 +249,7 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
  */
 router.get('/', asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
-  const limit = Math.min(parseInt(req.query.limit) || 10, 100); // Max 100 per page
+  const limit = Math.min(parseInt(req.query.limit) || 20, 200); // Default 20, Max 200 per page
   const offset = (page - 1) * limit;
 
   const filters = {};
@@ -313,7 +313,11 @@ router.get('/', asyncHandler(async (req, res) => {
           totalItems: result.total,
           itemsPerPage: limit,
           hasNextPage,
-          hasPreviousPage
+          hasPreviousPage,
+          nextPage: hasNextPage ? page + 1 : null,
+          previousPage: hasPreviousPage ? page - 1 : null,
+          startItem: offset + 1,
+          endItem: Math.min(offset + limit, result.total)
         }
       }
     });
