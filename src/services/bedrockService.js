@@ -63,23 +63,20 @@ class BedrockService {
         location
       });
 
-      // Construct the prompt for Nova Lite
-      const prompt = `You are an event operations and safety analyst. Analyze the following event information and provide practical operational insights for crowd management and safety.
+      // Construct the prompt for Nova Lite - focused on key operational data
+      const prompt = `You are an event operations analyst. Analyze this event and provide focused operational insights.
 
 Event Details:
 - Type: ${type}
 - Featured: ${feat}
 - Location: ${location}
 
-Please provide a comprehensive operational analysis in JSON format with the following structure:
+⚠️ CRITICAL: Respond with ONLY valid JSON. No markdown, no explanations.
+
+Required JSON Structure:
 {
-  "popularityScore": <number 0-100 indicating overall popularity level>,
-  "popularityLevel": <string: "Very High", "High", "Medium", "Low" based on the score>,
-  "expectedTurnout": {
-    "minimum": <number of expected attendees - minimum estimate>,
-    "expected": <number of expected attendees - most likely>,
-    "maximum": <number of expected attendees - maximum estimate>
-  },
+  "popularityScore": <number 0-100>,
+  "popularityLevel": <"Very High" | "High" | "Medium" | "Low">,
   "audienceDemographics": {
     "ageGroups": {
       "children": <percentage 0-100>,
@@ -88,58 +85,67 @@ Please provide a comprehensive operational analysis in JSON format with the foll
       "middleAged": <percentage 0-100>,
       "seniors": <percentage 0-100>
     },
-    "primaryAgeRange": <string like "25-45 years old">,
-    "mobilityConsiderations": <string describing if audience includes elderly, disabled, or requires special assistance>,
-    "behaviorProfile": <string describing expected audience behavior - calm, energetic, rushing, etc.>
+    "primaryAgeRange": <"25-45 years old">,
+    "mobilityConsiderations": <string describing mobility needs>,
+    "behaviorProfile": <string describing expected behavior>
   },
   "crowdFlowAnalysis": {
-    "entrySpeed": <string: "Fast", "Moderate", "Slow" - based on demographics>,
-    "entrySpeedRationale": <string explaining why entry will be at this speed>,
-    "peakCongestionTimes": [<array of strings like "30 minutes before start", "immediately after event ends">],
-    "bottleneckAreas": [<array of potential bottleneck locations like "Main entrance", "Parking area", "Merchandise booths">]
+    "entrySpeed": <"Fast" | "Moderate" | "Slow">,
+    "entrySpeedRationale": <detailed explanation based on demographics>
   },
   "historicalIncidents": [
     {
-      "incident": <string describing a past incident at similar events>,
-      "date": <string if known, or "Unknown">,
-      "casualties": <string describing impact>,
-      "cause": <string describing root cause>
+      "incident": <description of past incident at similar events>,
+      "date": <date or "Unknown">,
+      "casualties": <impact description>,
+      "cause": <root cause>
     }
   ],
-  "riskAssessment": {
-    "highRisks": [<array of high-priority safety risks for this specific event type and artist>],
-    "mediumRisks": [<array of moderate risks>],
-    "weatherRelatedRisks": [<array of weather-related concerns for the location>]
-  },
   "operationalRecommendations": {
     "staffingRequirements": {
-      "securityPersonnel": <number of recommended security staff>,
-      "medicalStaff": <number of recommended medical personnel>,
-      "crowdControlOfficers": <number of crowd control staff>,
-      "assistanceStaff": <number of staff to help elderly/disabled>,
-      "rationale": <string explaining the staffing numbers>
+      "securityPersonnel": <number>,
+      "medicalStaff": <number>,
+      "crowdControlOfficers": <number>,
+      "assistanceStaff": <number for elderly/disabled>,
+      "rationale": <explain staffing based on demographics>
     },
     "entranceManagement": [
-      <array of specific recommendations for managing entry, like "Open gates 2 hours early for elderly ticket holders", "Use separate lanes for VIP and general admission">
+      <SPECIFIC recommendations tailored to audience demographics>
+      <Example: If 20% seniors: "Open gates 2 hours early for seniors and disabled">
+      <Example: If 40% teens: "Implement digital ticketing to speed up entry">
     ],
     "crowdControl": [
-      <array of crowd control measures like "Install barriers in Queue areas", "Deploy staff at choke points">
+      <DEMOGRAPHIC-SPECIFIC crowd control measures>
+      <Example: If elderly present: "Install handrails along queue areas">
+      <Example: If young energetic crowd: "Deploy extra barriers at surge-prone areas">
     ],
     "emergencyPreparedness": [
-      <array of emergency preparedness steps like "Establish clear evacuation routes", "Station ambulances at exits">
+      <TAILORED emergency measures for this audience>
+      <Example: If seniors: "Station medical staff near seating areas, stock heart medications">
+      <Example: If young adults: "Prepare for heat exhaustion, dehydration">
     ],
     "specialConsiderations": [
-      <array of special considerations based on the demographics>
+      <CRITICAL considerations based on age groups and behavior profile>
+      <Must reference specific percentages from audienceDemographics>
     ]
-  },
-  "safetyMeasures": {
-    "mandatory": [<array of must-have safety measures>],
-    "recommended": [<array of recommended safety enhancements>],
-    "equipmentNeeded": [<array of equipment like "Wheelchairs", "First aid kits", "Crowd barriers">]
   }
 }
 
-Focus on practical, actionable operational insights. Base your analysis on known incidents and risks associated with similar events. Consider the specific characteristics of the featured artist/personality and their fan base. Provide ONLY the JSON response, no additional text.`;
+CRITICAL INSTRUCTIONS FOR OPERATIONAL RECOMMENDATIONS:
+1. **Analyze the audienceDemographics percentages carefully**
+2. **Tailor EVERY recommendation to the specific demographic profile**
+3. **If 15%+ seniors**: Include wheelchair access, early entry, handrails, seating, medical focus on heart/mobility issues
+4. **If 30%+ teens/youngAdults**: Focus on crowd surge control, faster entry systems, heat/dehydration, energy management
+5. **If 20%+ children**: Add parent zones, slower processing, child-friendly facilities
+6. **Always reference specific age group percentages in rationale**
+7. **Make recommendations ACTIONABLE and SPECIFIC**
+
+Example for senior-heavy audience:
+- "With 35% seniors, deploy 15 assistance staff specifically for mobility support"
+- "Provide seating areas every 50 meters due to 35% senior attendance"
+- "Medical staff should focus on cardiovascular issues common in 50+ demographic"
+
+Output ONLY the JSON. Start with { and end with }`;
 
       // Prepare the request payload for Nova Lite
       const payload = {
@@ -206,15 +212,10 @@ Focus on practical, actionable operational insights. Base your analysis on known
           content: content.substring(0, 200)
         });
 
-        // Fallback: return a basic analysis if JSON parsing fails
+        // Fallback: return a basic analysis if JSON parsing fails (focused on key fields only)
         analysisResult = {
           popularityScore: 50,
           popularityLevel: "Medium",
-          expectedTurnout: {
-            minimum: 0,
-            expected: 0,
-            maximum: 0
-          },
           audienceDemographics: {
             ageGroups: {
               children: 0,
@@ -223,41 +224,42 @@ Focus on practical, actionable operational insights. Base your analysis on known
               middleAged: 0,
               seniors: 0
             },
-            primaryAgeRange: "Unknown",
+            primaryAgeRange: "Unknown - manual review required",
             mobilityConsiderations: "Unable to analyze automatically",
             behaviorProfile: "Please review manually"
           },
           crowdFlowAnalysis: {
-            entrySpeed: "Unknown",
-            entrySpeedRationale: "Automated analysis failed",
-            peakCongestionTimes: ["Requires manual analysis"],
-            bottleneckAreas: ["Requires manual analysis"]
+            entrySpeed: "Moderate",
+            entrySpeedRationale: "Automated analysis failed - default to moderate speed. Manual assessment recommended based on actual audience demographics."
           },
           historicalIncidents: [],
-          riskAssessment: {
-            highRisks: ["Automated analysis unavailable - manual review required"],
-            mediumRisks: [],
-            weatherRelatedRisks: []
-          },
           operationalRecommendations: {
             staffingRequirements: {
               securityPersonnel: 0,
               medicalStaff: 0,
               crowdControlOfficers: 0,
               assistanceStaff: 0,
-              rationale: "Automated analysis failed - please conduct manual assessment"
+              rationale: "AI analysis failed. Please conduct manual staffing assessment based on expected attendance and venue capacity."
             },
-            entranceManagement: ["Review event details manually"],
-            crowdControl: ["Conduct on-site assessment"],
-            emergencyPreparedness: ["Develop emergency plan based on venue capacity"],
-            specialConsiderations: ["Manual review required"]
+            entranceManagement: [
+              "Manual review required - AI analysis unavailable",
+              "Assess audience demographics before determining entry procedures"
+            ],
+            crowdControl: [
+              "Conduct on-site assessment",
+              "Follow venue standard crowd control protocols"
+            ],
+            emergencyPreparedness: [
+              "Develop emergency plan based on venue capacity",
+              "Ensure medical staff availability regardless of analysis"
+            ],
+            specialConsiderations: [
+              "AI demographic analysis failed",
+              "Manual demographic assessment critical for planning"
+            ]
           },
-          safetyMeasures: {
-            mandatory: ["Follow local safety regulations"],
-            recommended: ["Conduct safety audit"],
-            equipmentNeeded: ["To be determined based on venue assessment"]
-          },
-          rawResponse: content
+          _error: "JSON parsing failed",
+          _rawPreview: content.substring(0, 200)
         };
       }
 
@@ -282,17 +284,12 @@ Focus on practical, actionable operational insights. Base your analysis on known
         popularityData
       });
 
-      // Return a fallback response instead of throwing
+      // Return a fallback response instead of throwing (focused on key fields)
       return {
         error: true,
         errorMessage: error.message,
         popularityScore: 0,
         popularityLevel: "Unknown",
-        expectedTurnout: {
-          minimum: 0,
-          expected: 0,
-          maximum: 0
-        },
         audienceDemographics: {
           ageGroups: {
             children: 0,
@@ -301,43 +298,48 @@ Focus on practical, actionable operational insights. Base your analysis on known
             middleAged: 0,
             seniors: 0
           },
-          primaryAgeRange: "Analysis failed",
-          mobilityConsiderations: "Unable to determine",
+          primaryAgeRange: "Analysis failed - manual review required",
+          mobilityConsiderations: "Unable to determine due to error",
           behaviorProfile: "Analysis error occurred"
         },
         crowdFlowAnalysis: {
-          entrySpeed: "Unknown",
-          entrySpeedRationale: "Analysis failed",
-          peakCongestionTimes: ["Unable to analyze"],
-          bottleneckAreas: ["Unable to analyze"]
+          entrySpeed: "Moderate",
+          entrySpeedRationale: `Analysis failed due to error: ${error.message}. Default to moderate entry speed. Conduct manual assessment based on expected demographics.`
         },
         historicalIncidents: [],
-        riskAssessment: {
-          highRisks: ["Automated analysis unavailable", error.message],
-          mediumRisks: [],
-          weatherRelatedRisks: []
-        },
         operationalRecommendations: {
           staffingRequirements: {
             securityPersonnel: 0,
             medicalStaff: 0,
             crowdControlOfficers: 0,
             assistanceStaff: 0,
-            rationale: "Analysis error - manual review required"
+            rationale: `AI analysis error: ${error.message}. Manual staffing assessment required based on venue capacity and expected attendance.`
           },
-          entranceManagement: ["Manual review required due to analysis error"],
-          crowdControl: ["Retry the analysis later"],
-          emergencyPreparedness: ["Conduct manual safety assessment"],
-          specialConsiderations: ["Analysis failed - manual planning required"]
-        },
-        safetyMeasures: {
-          mandatory: ["Follow local safety regulations"],
-          recommended: ["Conduct manual risk assessment"],
-          equipmentNeeded: ["To be determined manually"]
+          entranceManagement: [
+            "AI analysis unavailable - manual planning required",
+            "Assess expected demographics before determining entry procedures",
+            `Error details: ${error.message}`
+          ],
+          crowdControl: [
+            "Follow venue standard protocols",
+            "Conduct on-site demographic assessment",
+            "Retry AI analysis if needed"
+          ],
+          emergencyPreparedness: [
+            "Develop emergency plan based on venue requirements",
+            "Ensure medical staff availability",
+            "Follow local safety regulations"
+          ],
+          specialConsiderations: [
+            "AI demographic analysis failed - critical manual review needed",
+            "Consider event type and featured artist when planning",
+            "Consult with venue safety team"
+          ]
         },
         metadata: {
           analyzedAt: new Date().toISOString(),
-          error: error.message
+          error: error.message,
+          errorCode: error.name
         }
       };
     }
