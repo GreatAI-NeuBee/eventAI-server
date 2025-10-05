@@ -169,7 +169,7 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
       });
     }
 
-    // Generate forecast using new model endpoint
+    // Generate forecast using new model endpoint (without auto-save)
     const forecastData = {
       gates,
       schedule_start_time,
@@ -179,23 +179,44 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
       gates_crowd
     };
 
-    const forecastResult = await forecastService.generateForecastWithNewModel(eventid, forecastData);
+    // Generate forecast without auto-saving (autoSave = false)
+    const forecastResult = await forecastService.generateForecastWithNewModel(eventid, forecastData, false);
 
     logger.info('Forecast generated successfully', { eventid });
 
-    // Added Bedrock Recommendation (jiayin - 5/10/25)
+    // Get Bedrock incident recommendation based on forecast result
     const bedrockRecommendation = await bedrockService.getIncidentRecommendation(forecastResult, forecastData);
 
-    logger.info('Forecast and Bedrock recommendation generated successfully', { eventid });
+    logger.info('Bedrock incident recommendation generated', { 
+      eventid,
+      hasRecommendation: !!bedrockRecommendation,
+      hasError: !!bedrockRecommendation?.error,
+      gatesCount: bedrockRecommendation?.gates?.length || 0
+    });
+
+    // Combine forecast result with incident recommendation
+    const forecastWithIncident = {
+      ...forecastResult,
+      incident: bedrockRecommendation || {
+        gates: [],
+        generalRecommendations: ["AI incident analysis unavailable"],
+        error: "No recommendation available"
+      }
+    };
+
+    // Save complete forecast result (with incident) to database
+    await eventService.updateEventForecast(eventid, forecastWithIncident);
+
+    logger.info('Forecast with incident recommendation saved to database', { eventid });
 
     res.status(200).json({
       success: true,
-      // Amend return data (jiayin - 5/10/25)
       data: {
-        forecast: forecastResult,
-        recommendation: bedrockRecommendation || "No recommendation available",
+        eventId: eventid,
+        forecast: forecastWithIncident,
+        incidentAnalysis: bedrockRecommendation
       },
-      message: 'Forecast generated successfully'
+      message: 'Forecast with incident analysis generated and saved successfully'
     });
 
   } catch (error) {

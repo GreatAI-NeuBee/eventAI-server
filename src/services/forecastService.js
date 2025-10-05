@@ -297,11 +297,12 @@ class ForecastService {
    * Generates crowd forecast for an event using the new model endpoint
    * @param {string} eventId - Event ID
    * @param {Object} forecastData - Forecast input data for new model
+   * @param {boolean} autoSave - Whether to automatically save to database (default: false)
    * @returns {Promise<Object>} - Forecast result
    */
-  async generateForecastWithNewModel(eventId, forecastData) {
+  async generateForecastWithNewModel(eventId, forecastData, autoSave = false) {
     try {
-      logger.info('Generating forecast using new model endpoint', { eventId });
+      logger.info('Generating forecast using new model endpoint', { eventId, autoSave });
 
       // Get event details
       const event = await eventService.getEventById(eventId);
@@ -312,18 +313,15 @@ class ForecastService {
       // Call new AI model endpoint
       const modelResponse = await this.callNewAIModel(forecastData);
 
-      // Update event with forecast result
-      const updatedEvent = await eventService.updateEventForecast(eventId, modelResponse);
+      // Optionally update event with forecast result
+      if (autoSave) {
+        await eventService.updateEventForecast(eventId, modelResponse);
+        logger.info('Forecast auto-saved to database', { eventId });
+      }
 
       logger.info('Forecast generated successfully using new model', { eventId });
 
-      return {
-        eventId,
-        forecastResult: modelResponse,
-        generatedAt: new Date().toISOString(),
-        modelEndpoint: this.newModelEndpoint,
-        inputData: forecastData
-      };
+      return modelResponse;
 
     } catch (error) {
       logger.error('Error generating forecast with new model', { eventId, error: error.message });

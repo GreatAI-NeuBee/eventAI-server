@@ -359,10 +359,15 @@ Focus on practical, actionable operational insights. Base your analysis on known
           }
         ],
         inferenceConfig: {
-          temperature: 0.7,
+          temperature: 0.3,  // Lower temperature for more consistent JSON output
           topP: 0.9,
-          // maxOutputTokens: 400
-        }
+          maxTokens: 2000    // Increased for detailed recommendations
+        },
+        system: [
+          {
+            text: "You are a JSON-only API that returns incident prevention recommendations. You MUST respond with ONLY valid JSON. Do not include any explanations, markdown formatting, or text outside the JSON structure."
+          }
+        ]
       })
     };
 
@@ -378,20 +383,49 @@ Focus on practical, actionable operational insights. Base your analysis on known
       try {
         let outputText = parsed.output?.message?.content?.[0]?.text || "{}";
 
-        // Remove markdown code fences if present
-        outputText = outputText.replace(/^```json\s*|\s*```$/g, "").trim();
+        logger.info('Bedrock raw response for incident recommendation', {
+          responseLength: outputText.length,
+          startsWithBrace: outputText.trim().startsWith('{'),
+          preview: outputText.substring(0, 100)
+        });
 
+        // Clean up the response text
+        // 1. Remove markdown code fences
+        outputText = outputText.replace(/^```json\s*/gm, "").replace(/\s*```$/gm, "").trim();
+        
+        // 2. Remove any leading/trailing text before/after JSON
+        const jsonMatch = outputText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          outputText = jsonMatch[0];
+        }
+
+        // 3. Try to parse JSON
         recommendationJSON = JSON.parse(outputText);
 
         // Ensure always has gates & generalRecommendations
         recommendationJSON.gates = recommendationJSON.gates || [];
         recommendationJSON.generalRecommendations = recommendationJSON.generalRecommendations || [];
+
+        logger.info('Incident recommendation parsed successfully', {
+          gatesCount: recommendationJSON.gates.length,
+          recommendationsCount: recommendationJSON.generalRecommendations.length
+        });
+
       } catch (jsonErr) {
-        console.warn("AI returned invalid JSON, returning fallback structure", jsonErr);
+        logger.warn("AI returned invalid JSON, returning fallback structure", { 
+          error: jsonErr.message,
+          preview: parsed.output?.message?.content?.[0]?.text?.substring(0, 200)
+        });
+        
         recommendationJSON = {
           gates: [],
-          generalRecommendations: ["AI response invalid, no recommendations available"],
-          rawText: parsed
+          generalRecommendations: [
+            "AI incident analysis returned invalid format",
+            "Please retry the forecast generation",
+            "Manual safety review recommended"
+          ],
+          error: "JSON parsing failed",
+          errorDetails: jsonErr.message
         };
       }
 
