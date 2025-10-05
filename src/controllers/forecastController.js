@@ -4,6 +4,7 @@ const winston = require('winston');
 
 const forecastService = require('../services/forecastService');
 const eventService = require('../services/eventService');
+const bedrockService = require('../services/bedrockService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -182,15 +183,24 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
 
     logger.info('Forecast generated successfully', { eventid });
 
+    // Added Bedrock Recommendation (jiayin - 5/10/25)
+    const bedrockRecommendation = await bedrockService.getIncidentRecommendation(forecastResult, forecastData);
+
+    logger.info('Forecast and Bedrock recommendation generated successfully', { eventid });
+
     res.status(200).json({
       success: true,
-      data: forecastResult,
+      // Amend return data (jiayin - 5/10/25)
+      data: {
+        forecast: forecastResult,
+        recommendation: bedrockRecommendation || "No recommendation available",
+      },
       message: 'Forecast generated successfully'
     });
 
   } catch (error) {
     logger.error('Error generating forecast', { eventid, error: error.message });
-    
+
     if (error.message.includes('Event not found')) {
       return res.status(404).json({
         success: false,
@@ -204,9 +214,9 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
       });
     }
 
-    if (error.message.includes('model service is unavailable') || 
-        error.message.includes('endpoint not found') ||
-        error.message.includes('timed out')) {
+    if (error.message.includes('model service is unavailable') ||
+      error.message.includes('endpoint not found') ||
+      error.message.includes('timed out')) {
       return res.status(503).json({
         success: false,
         error: {
@@ -219,7 +229,7 @@ router.post('/', validateNewForecastGeneration, asyncHandler(async (req, res) =>
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
-    
+
     throw new AppError('Failed to generate forecast', 500, error.message);
   }
 }));
@@ -251,7 +261,7 @@ router.post('/legacy', validateForecastGeneration, asyncHandler(async (req, res)
   try {
     // Validate input data
     const validation = forecastService.validateForecastInput({ event_id: eventId, ...inputData });
-    
+
     if (!validation.isValid) {
       return res.status(400).json({
         success: false,
@@ -295,7 +305,7 @@ router.post('/legacy', validateForecastGeneration, asyncHandler(async (req, res)
 
   } catch (error) {
     logger.error('Error generating forecast', { eventId, error: error.message });
-    
+
     if (error.message.includes('Event not found')) {
       return res.status(404).json({
         success: false,
@@ -309,9 +319,9 @@ router.post('/legacy', validateForecastGeneration, asyncHandler(async (req, res)
       });
     }
 
-    if (error.message.includes('model service is unavailable') || 
-        error.message.includes('endpoint not found') ||
-        error.message.includes('timed out')) {
+    if (error.message.includes('model service is unavailable') ||
+      error.message.includes('endpoint not found') ||
+      error.message.includes('timed out')) {
       return res.status(503).json({
         success: false,
         error: {
@@ -324,7 +334,7 @@ router.post('/legacy', validateForecastGeneration, asyncHandler(async (req, res)
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
-    
+
     throw new AppError('Failed to generate forecast', 500, error.message);
   }
 }));
@@ -361,7 +371,7 @@ router.get('/:eventId', asyncHandler(async (req, res) => {
 
   } catch (error) {
     logger.error('Error retrieving forecast', { eventId, error: error.message });
-    
+
     if (error.message.includes('Event not found')) {
       return res.status(404).json({
         success: false,
@@ -374,7 +384,7 @@ router.get('/:eventId', asyncHandler(async (req, res) => {
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
-    
+
     throw new AppError('Failed to retrieve forecast', 500, error.message);
   }
 }));
@@ -458,10 +468,10 @@ router.post('/regenerate/:eventId', asyncHandler(async (req, res) => {
 
   } catch (error) {
     logger.error('Error regenerating forecast', { eventId, error: error.message });
-    
-    if (error.message.includes('model service is unavailable') || 
-        error.message.includes('endpoint not found') ||
-        error.message.includes('timed out')) {
+
+    if (error.message.includes('model service is unavailable') ||
+      error.message.includes('endpoint not found') ||
+      error.message.includes('timed out')) {
       return res.status(503).json({
         success: false,
         error: {
@@ -474,7 +484,7 @@ router.post('/regenerate/:eventId', asyncHandler(async (req, res) => {
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
-    
+
     throw new AppError('Failed to regenerate forecast', 500, error.message);
   }
 }));
@@ -502,7 +512,7 @@ router.get('/health/model', asyncHandler(async (req, res) => {
 
   } catch (error) {
     logger.error('Error checking legacy model health', { error: error.message });
-    
+
     res.status(503).json({
       success: false,
       error: {
@@ -545,7 +555,7 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
 
   } catch (error) {
     logger.error('Error checking new model health', { error: error.message });
-    
+
     res.status(503).json({
       success: false,
       error: {
