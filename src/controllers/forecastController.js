@@ -5,6 +5,8 @@ const winston = require('winston');
 const forecastService = require('../services/forecastService');
 const eventService = require('../services/eventService');
 const bedrockService = require('../services/bedrockService');
+const reportService = require('../services/reportService');
+const s3Service = require('../services/s3Service');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -593,6 +595,106 @@ router.get('/health/new-model', asyncHandler(async (req, res) => {
       timestamp: new Date().toISOString(),
       requestId: req.headers['x-request-id'] || 'unknown'
     });
+  }
+}));
+
+/**
+ * POST /forecast/:eventId/report
+ * Generates a PDF forecast report and returns a signed URL
+ */
+router.post('/:eventId/report', asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+
+  logger.info('Generating forecast report', { eventId });
+
+  try {
+    // Get event with forecast result
+    const event = await eventService.getEventById(eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Check if forecast exists
+    if (!event.forecastResult) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event does not have a forecast result. Please generate forecast first.',
+          code: 'FORECAST_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Generate PDF report
+    logger.info('Generating PDF report', { eventId });
+    const pdfBuffer = await reportService.generateForecastReport(event);
+
+    // Upload to S3
+    const filename = reportService.getReportFilename(event);
+    const s3Key = `reports/forecast/${eventId}/${filename}`;
+    
+    logger.info('Uploading report to S3', { eventId, s3Key });
+    await s3Service.uploadFile(s3Key, pdfBuffer, 'application/pdf');
+
+    // Generate signed URL (valid for 1 hour)
+    logger.info('Generating signed URL for report', { eventId });
+    const signedUrl = await s3Service.getPresignedDownloadUrl(s3Key, 3600);
+
+    logger.info('Forecast report generated successfully', { 
+      eventId, 
+      filename,
+      reportSize: pdfBuffer.length,
+      s3Key
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        eventId,
+        reportUrl: signedUrl,
+        filename,
+        expiresIn: 3600,
+        expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+        size: pdfBuffer.length,
+        s3Key
+      },
+      message: 'Forecast report generated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error generating forecast report', { 
+      eventId, 
+      error: error.message,
+      stack: error.stack 
+    });
+
+    if (error.message.includes('Event not found')) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    throw new AppError('Failed to generate forecast report', 500, error.message);
   }
 }));
 
