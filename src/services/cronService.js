@@ -187,20 +187,41 @@ class CronService {
         const isToday = eventStartDate.getTime() === todayDate.getTime();
         const hasForecast = !!event.forecastResult;
         
-        // Additional check: only include if event hasn't ended yet
-        const hasNotEnded = now <= eventEnd;
+        // Use forecast period if available, otherwise use event times
+        let forecastStart = eventStart;
+        let forecastEnd = eventEnd;
+        
+        if (event.forecastResult?.summary?.forecastPeriod) {
+          const period = event.forecastResult.summary.forecastPeriod;
+          if (period.start) {
+            forecastStart = new Date(period.start);
+          }
+          if (period.end) {
+            forecastEnd = new Date(period.end);
+          }
+        }
+        
+        // Check if current time is within forecast period
+        const hasStarted = now >= forecastStart;
+        const hasNotEnded = now <= forecastEnd;
+        const isOngoing = hasStarted && hasNotEnded;
 
         logger.debug('Event filter check', {
           eventId: event.eventId,
           eventStart: eventStart.toISOString(),
           eventEnd: eventEnd.toISOString(),
+          forecastStart: forecastStart.toISOString(),
+          forecastEnd: forecastEnd.toISOString(),
+          currentTime: now.toISOString(),
           isToday,
           hasForecast,
+          hasStarted,
           hasNotEnded,
-          included: isToday && hasForecast && hasNotEnded
+          isOngoing,
+          included: isToday && hasForecast && isOngoing
         });
 
-        return isToday && hasForecast && hasNotEnded;
+        return isToday && hasForecast && isOngoing;
       });
 
       logger.info('Filtered events for today', { 
@@ -236,14 +257,21 @@ class CronService {
         throw new Error(`Prediction failed: ${predictionResult.message}`);
       }
 
-      // Update event with new prediction result
+      // Merge new predictions with existing predict_result
+      const updatedPredictResult = this.mergePredictions(
+        event.predictResult,
+        predictionResult
+      );
+
+      // Update event with merged prediction result
       await eventService.updateEvent(event.eventId, {
-        predictResult: predictionResult
+        predictResult: updatedPredictResult
       });
 
       logger.info('Successfully updated prediction for event', { 
         eventId: event.eventId,
-        predictionsCount: predictionResult.predictions?.length || 0
+        predictionsCount: predictionResult.predictions?.length || 0,
+        totalTimeFrames: this.countTotalTimeFrames(updatedPredictResult)
       });
 
       return {
@@ -259,6 +287,84 @@ class CronService {
       });
       throw error;
     }
+  }
+
+  /**
+   * Merges new predictions with existing predict_result
+   * Appends new timeframes instead of replacing
+   */
+  mergePredictions(existingPredictResult, newPredictionResult) {
+    // Initialize with existing structure or create new
+    const merged = existingPredictResult ? JSON.parse(JSON.stringify(existingPredictResult)) : {};
+
+    // Extract predictions from the new result
+    const predictions = newPredictionResult.predictions || [];
+    const timestamp = newPredictionResult.metadata?.requestedAt || new Date().toISOString();
+
+    // Group predictions by gate_id
+    predictions.forEach(prediction => {
+      const gateId = prediction.gate_id;
+      
+      // Initialize gate structure if it doesn't exist
+      if (!merged[gateId]) {
+        merged[gateId] = {
+          capacity: prediction.capacity || 100,
+          timeFrames: []
+        };
+      }
+
+      // Create new timeframe entry
+      const newTimeFrame = {
+        predicted: prediction.predicted || 0,
+        actual: prediction.actual || 0,
+        timestamp: this.formatTimestamp(timestamp),
+        dataSource: 'ai_model'
+      };
+
+      // Append to timeFrames array (don't replace!)
+      merged[gateId].timeFrames.push(newTimeFrame);
+
+      logger.debug('Appended prediction timeframe', {
+        gateId,
+        timestamp: newTimeFrame.timestamp,
+        predicted: newTimeFrame.predicted,
+        actual: newTimeFrame.actual,
+        totalTimeFrames: merged[gateId].timeFrames.length
+      });
+    });
+
+    return merged;
+  }
+
+  /**
+   * Formats timestamp to match forecast_result format
+   */
+  formatTimestamp(isoTimestamp) {
+    const date = new Date(isoTimestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
+   * Counts total timeframes across all gates
+   */
+  countTotalTimeFrames(predictResult) {
+    if (!predictResult) return 0;
+    
+    let total = 0;
+    Object.keys(predictResult).forEach(gateId => {
+      if (predictResult[gateId]?.timeFrames) {
+        total += predictResult[gateId].timeFrames.length;
+      }
+    });
+    
+    return total;
   }
 
   /**
