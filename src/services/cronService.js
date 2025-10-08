@@ -382,13 +382,17 @@ class CronService {
       // ✅ Extract values from correct model response fields
       const predicted = prediction.forecast_next_5_min?.predicted_people_count ?? 0;
       const actual = prediction.current_people_count ?? 0;
+      const riskScore = prediction.forecast_next_5_min?.risk_score ?? null;
+      const possibleIncidents = prediction.forecast_next_5_min?.possible_incidents ?? [];
 
       // Create new timeframe entry
       const newTimeFrame = {
         predicted,
         actual,
         timestamp: this.formatTimestamp(timestamp),
-        dataSource: 'ai_model'
+        dataSource: 'ai_model',
+        riskScore,
+        possibleIncidents
       };
 
       // Append to timeFrames array (don't replace!)
@@ -400,6 +404,8 @@ class CronService {
         timestamp: newTimeFrame.timestamp,
         predicted: newTimeFrame.predicted,
         actual: newTimeFrame.actual,
+        riskScore: newTimeFrame.riskScore,
+        incidentsCount: newTimeFrame.possibleIncidents.length,
         capacity: merged[forecastGateId].capacity,
         totalTimeFrames: merged[forecastGateId].timeFrames.length
       });
