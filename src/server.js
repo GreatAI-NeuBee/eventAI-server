@@ -128,8 +128,21 @@ const swaggerDocument = YAML.load(path.join(__dirname, '..', 'docs', 'openapi.ya
 // Update servers in swagger document based on environment
 const getServerUrl = (req) => {
   if (req && req.headers.host) {
-    const protocol = req.headers['x-forwarded-proto'] || (req.connection.encrypted ? 'https' : 'http');
-    return `${protocol}://${req.headers.host}`;
+    // Check multiple headers for HTTPS detection
+    const proto = req.headers['x-forwarded-proto'] || 
+                  req.headers['x-forwarded-protocol'] ||
+                  req.headers['x-url-scheme'] ||
+                  (req.connection.encrypted ? 'https' : 'http');
+    
+    // Force HTTPS for production domains
+    const host = req.headers.host;
+    const isProduction = host.includes('munymunyhom.tech') || 
+                        host.includes('eventbuddy-api') ||
+                        process.env.NODE_ENV === 'production';
+    
+    const protocol = isProduction ? 'https' : proto;
+    
+    return `${protocol}://${host}`;
   }
   return process.env.API_BASE_URL || 'http://localhost:3000';
 };
@@ -162,7 +175,6 @@ const swaggerOptions = {
     showRequestHeaders: true,
     showCommonExtensions: true,
     tryItOutEnabled: true,
-    // Force HTTP for EC2 deployment without SSL
     supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
     defaultModelsExpandDepth: 1,
     defaultModelExpandDepth: 1
@@ -173,7 +185,7 @@ const swaggerOptions = {
   customCssUrl: undefined
 };
 
-// Custom Swagger UI that forces HTTP for EC2
+// Custom Swagger UI with dynamic protocol detection
 app.get('/api-docs', (req, res, next) => {
   // Disable CSP for this endpoint to allow external resources
   res.setHeader('Content-Security-Policy', '');
@@ -185,7 +197,7 @@ app.get('/api-docs', (req, res, next) => {
     servers: configureSwaggerServers(req) 
   };
   
-  // Create custom HTML that forces HTTP URLs
+  // Create custom HTML for Swagger UI
   const customSwaggerHTML = `
     <!DOCTYPE html>
     <html lang="en">
