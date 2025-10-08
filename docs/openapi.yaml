@@ -1699,10 +1699,26 @@ paths:
 
   /api/v1/prediction/{eventId}:
     post:
-      summary: Generate prediction for event
+      summary: Generate real-time prediction for event (On-Demand)
       description: |
         Manually triggers a prediction for a specific event and saves the result.
-        Requires the event to have a forecast_result to generate predictions from.
+        
+        **Frontend Usage**: "View On-Going Model" button
+        
+        **Requirements**:
+        - Event must have forecast_result
+        - Current time must be within event/forecast period (time validation)
+        
+        **Features**:
+        - ✅ Validates time range (event start to end)
+        - ✅ Appends new timeframes (doesn't replace existing data)
+        - ✅ Uses same merge logic as cron job
+        - ✅ Returns detailed error messages
+        
+        **Time Validation**:
+        - Uses `forecastResult.summary.forecastPeriod` if available
+        - Falls back to `dateOfEventStart` and `dateOfEventEnd`
+        - Rejects requests before event starts or after event ends
       tags:
         - Prediction
       parameters:
@@ -1712,7 +1728,7 @@ paths:
           description: Event ID to generate prediction for
           schema:
             type: string
-            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+            example: "evt_bf10474c-87c0-4b13-8dc2-6eba46b77d4c"
       responses:
         '200':
           description: Prediction generated successfully
@@ -1725,12 +1741,111 @@ paths:
                     type: boolean
                     example: true
                   data:
-                    $ref: '#/components/schemas/PredictionResult'
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                        example: "evt_bf10474c-87c0-4b13-8dc2-6eba46b77d4c"
+                      predictionResult:
+                        type: object
+                        description: Complete predict_result with all timeframes
+                        example:
+                          A:
+                            capacity: 800
+                            timeFrames:
+                              - predicted: 150
+                                actual: 120
+                                timestamp: "2025-10-08 08:30:00"
+                                dataSource: "ai_model"
+                              - predicted: 160
+                                actual: 130
+                                timestamp: "2025-10-08 12:05:00"
+                                dataSource: "ai_model"
+                      metadata:
+                        type: object
+                        properties:
+                          requestedAt:
+                            type: string
+                            format: date-time
+                            example: "2025-10-08T12:05:30.123Z"
+                          forecastPeriod:
+                            type: object
+                            properties:
+                              start:
+                                type: string
+                                format: date-time
+                                example: "2025-10-08T08:30:00.000Z"
+                              end:
+                                type: string
+                                format: date-time
+                                example: "2025-10-08T20:00:00.000Z"
+                          newPredictions:
+                            type: integer
+                            description: Number of new predictions added
+                            example: 1
+                          totalTimeFrames:
+                            type: integer
+                            description: Total accumulated timeframes across all gates
+                            example: 2
+                          isRealTime:
+                            type: boolean
+                            example: true
+                      updatedAt:
+                        type: string
+                        format: date-time
                   message:
                     type: string
-                    example: "Prediction generated and saved successfully"
+                    example: "Prediction completed successfully"
         '400':
-          description: Event does not have forecast data
+          description: Bad request - Event not started, ended, or missing forecast
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                eventNotStarted:
+                  summary: Event has not started yet
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "Event has not started yet. Prediction will be available from 2025-10-08T08:30:00.000Z"
+                      code: "EVENT_NOT_STARTED"
+                      details:
+                        currentTime: "2025-10-08T05:40:00.000Z"
+                        forecastPeriod:
+                          start: "2025-10-08T08:30:00.000Z"
+                          end: "2025-10-08T20:00:00.000Z"
+                        hasStarted: false
+                        hasNotEnded: true
+                    timestamp: "2025-10-08T05:40:00.000Z"
+                eventEnded:
+                  summary: Event has already ended
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "Event has already ended at 2025-10-08T20:00:00.000Z"
+                      code: "EVENT_ENDED"
+                      details:
+                        currentTime: "2025-10-08T20:05:00.000Z"
+                        forecastPeriod:
+                          start: "2025-10-08T08:30:00.000Z"
+                          end: "2025-10-08T20:00:00.000Z"
+                        hasStarted: true
+                        hasNotEnded: false
+                    timestamp: "2025-10-08T20:05:00.000Z"
+                forecastRequired:
+                  summary: Event missing forecast data
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "Event must have forecast_result before getting predictions"
+                      code: "FORECAST_REQUIRED"
+                    timestamp: "2025-10-08T12:05:00.000Z"
+        '404':
+          description: Event not found
           content:
             application/json:
               schema:
@@ -1739,14 +1854,23 @@ paths:
                 success: false
                 error:
                   status: "fail"
-                  message: "Event does not have a forecast result to generate predictions from"
-                  code: "NO_FORECAST_DATA"
-        '404':
-          description: Event not found
+                  message: "Event not found"
+                  code: "EVENT_NOT_FOUND"
+                timestamp: "2025-10-08T12:05:00.000Z"
+        '503':
+          description: Prediction service unavailable
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  status: "error"
+                  message: "Prediction service unavailable"
+                  details: "Connection refused to http://prediction-model:5000"
+                  code: "PREDICTION_SERVICE_ERROR"
+                timestamp: "2025-10-08T12:05:00.000Z"
         '500':
           $ref: '#/components/responses/InternalServerError'
     

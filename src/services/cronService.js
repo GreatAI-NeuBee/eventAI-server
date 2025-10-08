@@ -260,7 +260,8 @@ class CronService {
       // Merge new predictions with existing predict_result
       const updatedPredictResult = this.mergePredictions(
         event.predictResult,
-        predictionResult
+        predictionResult,
+        event
       );
 
       // Update event with merged prediction result
@@ -292,8 +293,11 @@ class CronService {
   /**
    * Merges new predictions with existing predict_result
    * Appends new timeframes instead of replacing
+   * @param {Object} existingPredictResult - Existing predict_result
+   * @param {Object} newPredictionResult - New prediction from model
+   * @param {Object} event - Event object (to get correct capacities from forecast_result)
    */
-  mergePredictions(existingPredictResult, newPredictionResult) {
+  mergePredictions(existingPredictResult, newPredictionResult, event) {
     // Initialize with existing structure or create new
     const merged = existingPredictResult ? JSON.parse(JSON.stringify(existingPredictResult)) : {};
 
@@ -301,22 +305,35 @@ class CronService {
     const predictions = newPredictionResult.predictions || [];
     const timestamp = newPredictionResult.metadata?.requestedAt || new Date().toISOString();
 
+    // Get gate capacities from forecast_result
+    const gateCapacities = this.extractGateCapacitiesFromForecast(event.forecastResult);
+
     // Group predictions by gate_id
     predictions.forEach(prediction => {
       const gateId = prediction.gate_id;
       
+      // Get correct capacity from forecast_result
+      const correctCapacity = gateCapacities[gateId] || prediction.total_capacity || 100;
+      
       // Initialize gate structure if it doesn't exist
       if (!merged[gateId]) {
         merged[gateId] = {
-          capacity: prediction.capacity || 100,
+          capacity: correctCapacity,
           timeFrames: []
         };
+      } else if (merged[gateId].capacity !== correctCapacity) {
+        // Update capacity if it changed
+        merged[gateId].capacity = correctCapacity;
       }
+
+      // ✅ Extract values from correct model response fields
+      const predicted = prediction.forecast_next_5_min?.predicted_people_count ?? 0;
+      const actual = prediction.current_people_count ?? 0;
 
       // Create new timeframe entry
       const newTimeFrame = {
-        predicted: prediction.predicted || 0,
-        actual: prediction.actual || 0,
+        predicted,
+        actual,
         timestamp: this.formatTimestamp(timestamp),
         dataSource: 'ai_model'
       };
@@ -329,11 +346,48 @@ class CronService {
         timestamp: newTimeFrame.timestamp,
         predicted: newTimeFrame.predicted,
         actual: newTimeFrame.actual,
+        capacity: correctCapacity,
         totalTimeFrames: merged[gateId].timeFrames.length
       });
     });
 
     return merged;
+  }
+
+  /**
+   * Extracts gate capacities from forecast_result
+   * @param {Object} forecastResult - Forecast result object
+   * @returns {Object} - Map of gate_id to capacity
+   */
+  extractGateCapacitiesFromForecast(forecastResult) {
+    const capacities = {};
+    
+    if (!forecastResult) {
+      return capacities;
+    }
+
+    // Check forecast_result.summary.predictions for capacity
+    if (forecastResult.summary?.predictions) {
+      forecastResult.summary.predictions.forEach(pred => {
+        if (pred.gate && pred.capacity) {
+          capacities[pred.gate] = pred.capacity;
+        }
+      });
+    }
+
+    // Check forecast_result.forecast for capacity (alternative structure)
+    if (forecastResult.forecast) {
+      Object.keys(forecastResult.forecast).forEach(gateId => {
+        const gateData = forecastResult.forecast[gateId];
+        if (gateData.capacity) {
+          capacities[gateId] = gateData.capacity;
+        }
+      });
+    }
+
+    logger.debug('Extracted gate capacities from forecast', { capacities });
+
+    return capacities;
   }
 
   /**

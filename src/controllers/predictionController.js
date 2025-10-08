@@ -156,12 +156,14 @@ const logger = winston.createLogger({
 
 /**
  * POST /prediction/:eventId
- * Gets real-time prediction for an event
+ * Gets real-time prediction for an event (on-demand trigger from frontend)
+ * Only works if current time is within event/forecast period
  */
 router.post('/:eventId', asyncHandler(async (req, res) => {
   const { eventId } = req.params;
+  const now = new Date();
 
-  logger.info('Getting prediction for event', { eventId });
+  logger.info('Manual prediction trigger requested', { eventId, requestedAt: now.toISOString() });
 
   try {
     // Get event with forecast_result
@@ -175,7 +177,7 @@ router.post('/:eventId', asyncHandler(async (req, res) => {
           message: 'Event not found',
           code: 'EVENT_NOT_FOUND'
         },
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
@@ -189,12 +191,72 @@ router.post('/:eventId', asyncHandler(async (req, res) => {
           message: 'Event must have forecast_result before getting predictions',
           code: 'FORECAST_REQUIRED'
         },
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
 
-    // Get prediction from the model
+    // ✅ Check if current time is within event/forecast period
+    const eventStart = new Date(event.dateOfEventStart);
+    const eventEnd = new Date(event.dateOfEventEnd);
+    
+    // Use forecast period if available, otherwise use event times
+    let forecastStart = eventStart;
+    let forecastEnd = eventEnd;
+    
+    if (event.forecastResult?.summary?.forecastPeriod) {
+      const period = event.forecastResult.summary.forecastPeriod;
+      if (period.start) {
+        forecastStart = new Date(period.start);
+      }
+      if (period.end) {
+        forecastEnd = new Date(period.end);
+      }
+    }
+    
+    // Check if current time is within forecast period
+    const hasStarted = now >= forecastStart;
+    const hasNotEnded = now <= forecastEnd;
+    const isOngoing = hasStarted && hasNotEnded;
+
+    logger.info('Time validation check', {
+      eventId,
+      currentTime: now.toISOString(),
+      forecastStart: forecastStart.toISOString(),
+      forecastEnd: forecastEnd.toISOString(),
+      hasStarted,
+      hasNotEnded,
+      isOngoing
+    });
+
+    // ❌ Reject if outside time range
+    if (!isOngoing) {
+      const errorMessage = !hasStarted 
+        ? `Event has not started yet. Prediction will be available from ${forecastStart.toISOString()}`
+        : `Event has already ended at ${forecastEnd.toISOString()}`;
+      
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: errorMessage,
+          code: !hasStarted ? 'EVENT_NOT_STARTED' : 'EVENT_ENDED',
+          details: {
+            currentTime: now.toISOString(),
+            forecastPeriod: {
+              start: forecastStart.toISOString(),
+              end: forecastEnd.toISOString()
+            },
+            hasStarted,
+            hasNotEnded
+          }
+        },
+        timestamp: now.toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // ✅ Time validation passed - get prediction from the model
     const predictionResult = await predictionService.getPrediction(event);
 
     // Check if prediction failed
@@ -212,26 +274,47 @@ router.post('/:eventId', asyncHandler(async (req, res) => {
           details: predictionResult.message,
           code: 'PREDICTION_SERVICE_ERROR'
         },
-        timestamp: new Date().toISOString(),
+        timestamp: now.toISOString(),
         requestId: req.headers['x-request-id'] || 'unknown'
       });
     }
 
-    // Update event with prediction result
+    // ✅ Merge with existing predictions (append timeframes)
+    const cronService = require('../services/cronService');
+    const updatedPredictResult = cronService.mergePredictions(
+      event.predictResult,
+      predictionResult,
+      event
+    );
+
+    // Update event with merged prediction result
     const updatedEvent = await eventService.updateEvent(eventId, {
-      predictResult: predictionResult
+      predictResult: updatedPredictResult
     });
+
+    const totalTimeFrames = cronService.countTotalTimeFrames(updatedPredictResult);
 
     logger.info('Prediction completed and saved', { 
       eventId,
-      predictionsCount: predictionResult.predictions?.length || 0
+      predictionsCount: predictionResult.predictions?.length || 0,
+      totalTimeFrames
     });
 
     res.status(200).json({
       success: true,
       data: {
         eventId,
-        predictionResult,
+        predictionResult: updatedPredictResult,
+        metadata: {
+          requestedAt: now.toISOString(),
+          forecastPeriod: {
+            start: forecastStart.toISOString(),
+            end: forecastEnd.toISOString()
+          },
+          newPredictions: predictionResult.predictions?.length || 0,
+          totalTimeFrames,
+          isRealTime: true
+        },
         event: updatedEvent,
         updatedAt: new Date().toISOString()
       },
