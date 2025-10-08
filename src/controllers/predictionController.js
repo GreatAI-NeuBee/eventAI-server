@@ -9,6 +9,7 @@ const router = express.Router();
 
 /**
  * Formats forecast and prediction data for frontend line graph comparison
+ * Updated to match new predict_result structure from backend_crowd_predict.md
  */
 function formatForecastVsPredictionData(event) {
   const forecastResult = event.forecastResult;
@@ -39,14 +40,13 @@ function formatForecastVsPredictionData(event) {
     const forecastLine = timeline.map(time => ({
       timestamp: time.toISOString(),
       time: time.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }),
-      // Use average prediction as baseline, you might want to use actual forecast data if available
       forecastCount: forecastData.avgPrediction || 0,
       capacity: forecastData.capacity || 0
     }));
     
-    // Create prediction line (partial data that builds up over time)
+    // Create prediction line from accumulated timeFrames (following backend_crowd_predict.md)
     const predictionLine = [];
-    if (predictResult && predictResult.predictions) {
+    if (predictResult && !predictResult.error) {
       // Map gate IDs: forecast uses "1","2","A","B" while predictions use "gate_1","gate_2","gate_3"
       const gateMapping = {
         '1': ['gate_1', '1'],
@@ -55,30 +55,37 @@ function formatForecastVsPredictionData(event) {
         'B': ['gate_4', 'B', 'gate_B']
       };
       
-      // Find predictions for this gate using flexible matching
-      const gatePredictions = predictResult.predictions.filter(p => {
-        const possibleIds = gateMapping[gateId] || [gateId];
-        return possibleIds.some(id => 
-          p.gate_id === id || p.gate === id || p.gate_id === gateId || p.gate === gateId
-        );
-      });
+      // Find the gate's timeFrames from new predict_result structure
+      const possibleGateKeys = gateMapping[gateId] || [gateId];
+      let gateTimeFrames = [];
       
-      gatePredictions.forEach(prediction => {
-        if (prediction.forecast_next_5_min) {
-          predictionLine.push({
-            timestamp: prediction.timestamp || new Date().toISOString(),
-            time: new Date(prediction.timestamp || new Date()).toLocaleTimeString('en-US', { 
-              hour12: false, 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            }),
-            predictedCount: prediction.forecast_next_5_min.predicted_people_count || 0,
-            congestionLevel: prediction.forecast_next_5_min.predicted_congestion_level || 'Unknown',
-            riskScore: prediction.forecast_next_5_min.risk_score || 0,
-            currentCount: prediction.current_people_count || 0,
-            confidenceScore: prediction.confidence_score || 0
-          });
+      // Search for this gate's data in predict_result
+      for (const possibleKey of possibleGateKeys) {
+        if (predictResult[possibleKey] && predictResult[possibleKey].timeFrames) {
+          gateTimeFrames = predictResult[possibleKey].timeFrames;
+          break;
         }
+      }
+      
+      // Format timeFrames for frontend
+      gateTimeFrames.forEach(timeFrame => {
+        predictionLine.push({
+          timestamp: timeFrame.timestamp,
+          time: new Date(timeFrame.timestamp).toLocaleTimeString('en-US', { 
+            hour12: false, 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          predictedCount: timeFrame.predicted || timeFrame.actual || 0,
+          actualCount: timeFrame.actual || 0,
+          congestionLevel: timeFrame.congestionLevel || 'Unknown',
+          congestionNumeric: timeFrame.congestionNumeric || 0,
+          riskScore: timeFrame.riskScore || 0,
+          riskLevel: timeFrame.riskLevel || 'Low',
+          currentCount: timeFrame.currentCount || 0,
+          confidenceScore: timeFrame.confidenceScore || 0,
+          incidents: timeFrame.incidents || []
+        });
       });
     }
     
@@ -96,7 +103,8 @@ function formatForecastVsPredictionData(event) {
         complete: predictionLine.length >= timeline.length,
         dataPoints: predictionLine,
         lastUpdated: predictionLine.length > 0 ? predictionLine[predictionLine.length - 1].timestamp : null,
-        progress: timeline.length > 0 ? Math.round((predictionLine.length / timeline.length) * 100) : 0
+        progress: timeline.length > 0 ? Math.round((predictionLine.length / timeline.length) * 100) : 0,
+        totalDataPoints: predictionLine.length
       }
     };
   });
@@ -121,9 +129,11 @@ function formatForecastVsPredictionData(event) {
     summary: {
       totalGates: gates.length,
       forecastAvailable: !!forecastResult,
-      predictionAvailable: !!predictResult,
-      lastPredictionUpdate: predictResult ? (predictResult.processedAt || predictResult.timestamp || event.updatedAt) : null,
-      overallProgress: gateData.length > 0 ? Math.round(gateData.reduce((sum, gate) => sum + gate.prediction.progress, 0) / gateData.length) : 0
+      predictionAvailable: !!predictResult && !predictResult.error,
+      lastPredictionUpdate: predictResult?._metadata?.lastUpdated || event.updatedAt,
+      firstPredictionTime: predictResult?._metadata?.firstPrediction || null,
+      overallProgress: gateData.length > 0 ? Math.round(gateData.reduce((sum, gate) => sum + gate.prediction.progress, 0) / gateData.length) : 0,
+      totalPredictionDataPoints: predictResult?._metadata?.totalTimeFrames || 0
     }
   };
 }
@@ -363,6 +373,54 @@ router.get('/:eventId/comparison', asyncHandler(async (req, res) => {
   } catch (error) {
     logger.error('Error getting comparison data', { eventId, error: error.message });
     throw new AppError('Failed to get comparison data', 500, error.message);
+  }
+}));
+
+/**
+ * DELETE /prediction/:eventId/reset
+ * Clears predict_result for an event (useful for testing or resetting)
+ */
+router.delete('/:eventId/reset', asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+
+  logger.info('Resetting prediction data for event', { eventId });
+
+  try {
+    const event = await eventService.getEventById(eventId);
+    
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Clear predict_result
+    await eventService.updateEvent(eventId, {
+      predictResult: {}
+    });
+
+    logger.info('Prediction data reset successfully', { eventId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        eventId,
+        message: 'Prediction data has been reset',
+        previousDataPoints: event.predictResult?._metadata?.totalTimeFrames || 0
+      },
+      message: 'Prediction data reset successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error resetting prediction data', { eventId, error: error.message });
+    throw new AppError('Failed to reset prediction data', 500, error.message);
   }
 }));
 

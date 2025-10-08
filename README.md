@@ -23,8 +23,10 @@ The server follows a modern cloud architecture using AWS and Supabase:
 
 - **Event Management**: Create, update, and manage events with file uploads
 - **AI Simulation**: Trigger crowd flow simulations with real-time progress tracking
+- **Real-time Crowd Prediction**: Dynamic prediction updates with support for live camera feeds
 - **Real-time Notifications**: WhatsApp alerts via n8n workflow integration for high-priority recommendations
 - **File Management**: Secure S3 integration for ticketing data and seating charts
+- **Camera Feed Integration**: Support for real-time camera feeds for accurate crowd detection
 - **n8n Integration**: Complete workflow automation for webhook processing and WhatsApp delivery
 - **Comprehensive Logging**: Winston-based logging with request tracking
 - **Error Handling**: Centralized error handling with proper HTTP status codes
@@ -349,7 +351,76 @@ For support and questions:
 - Check the documentation
 - Review the logs in CloudWatch
 
+## 📹 Camera Feed Configuration
+
+The prediction service supports multiple image sources with the following priority:
+
+1. **Real-time Camera Feeds** (Recommended)
+2. **Forecast Data Images**
+3. **Event Attachments**
+4. **Demo Images** (Fallback only)
+
+### Quick Setup - Your Own Cameras
+
+```bash
+# Update event with camera feeds
+curl -X PUT http://localhost:3000/api/v1/events/{eventId} \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cameraFeeds": {
+      "gate_1": "http://camera-server.com/gate1/live",
+      "gate_2": "http://camera-server.com/gate2/live"
+    }
+  }'
+```
+
+### Quick Setup - Public Webcams (For Demo/Testing)
+
+Use public webcams from [SkylineWebcams](https://www.skylinewebcams.com):
+
+```bash
+# Example: Rome landmarks
+curl -X PUT http://localhost:3000/api/v1/events/evt_demo \
+  -H "Content-Type: application/json" \
+  -d '{
+    "cameraFeeds": {
+      "gate_1": "https://cdn.skylinewebcams.com/live205.jpg",
+      "gate_2": "https://cdn.skylinewebcams.com/live286.jpg",
+      "gate_3": "https://cdn.skylinewebcams.com/live1151.jpg"
+    }
+  }'
+
+# Or run the test script
+./test-live-webcam.sh
+```
+
+### Configuration Options
+
+See the complete guides:
+- 📖 [Live Webcam Integration](./docs/LIVE_WEBCAM_INTEGRATION.md) - **NEW!** Using public webcams
+- 📖 [Webcam Quick Reference](./WEBCAM_QUICK_REFERENCE.md) - **NEW!** Quick start guide
+- 📖 [Camera Feed Setup Guide](./docs/CAMERA_FEED_SETUP.md) - Your own cameras
+- 📖 [Fix Summary](./CAMERA_FIX_SUMMARY.md)
+- 📝 [Example Configuration](./camera-config.example.json)
+
+### Monitoring
+
+```bash
+# Check if using real-time cameras
+tail -f logs/combined.log | grep "Using real-time camera feed"
+
+# Check for fallback warnings
+tail -f logs/combined.log | grep "No real-time image available"
+```
+
 ## 🔄 Version History
+
+- **v1.1.0** (2025-10-07): Camera Feed Integration & Prediction Improvements
+  - ✅ Added real-time camera feed support
+  - ✅ Fixed random image selection causing detection inconsistency
+  - ✅ Implemented multi-priority image source system
+  - ✅ Enhanced logging and monitoring for image sources
+  - 📖 Added comprehensive camera setup documentation
 
 - **v1.0.0**: Initial release with core functionality
   - Event management
