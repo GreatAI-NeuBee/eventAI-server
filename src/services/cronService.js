@@ -194,17 +194,23 @@ class CronService {
         if (event.forecastResult?.summary?.forecastPeriod) {
           const period = event.forecastResult.summary.forecastPeriod;
           if (period.start) {
-            forecastStart = new Date(period.start);
+            // Forecast period timestamps are in format "YYYY-MM-DD HH:mm:ss" without timezone
+            // They represent UTC time, so we need to explicitly parse as UTC
+            forecastStart = this.parseAsUTC(period.start);
           }
           if (period.end) {
-            forecastEnd = new Date(period.end);
+            forecastEnd = this.parseAsUTC(period.end);
           }
         }
         
         // Check if current time is within forecast period
-        const hasStarted = now >= forecastStart;
+        // Allow prediction to start 1 hour before event starts
+        const ONE_HOUR_MS = 60 * 60 * 1000;
+        const oneHourBeforeStart = new Date(forecastStart.getTime() - ONE_HOUR_MS);
+        
+        const isWithinPreStartWindow = now >= oneHourBeforeStart; // 1 hour before start
         const hasNotEnded = now <= forecastEnd;
-        const isOngoing = hasStarted && hasNotEnded;
+        const isOngoing = isWithinPreStartWindow && hasNotEnded;
 
         logger.debug('Event filter check', {
           eventId: event.eventId,
@@ -212,10 +218,11 @@ class CronService {
           eventEnd: eventEnd.toISOString(),
           forecastStart: forecastStart.toISOString(),
           forecastEnd: forecastEnd.toISOString(),
+          oneHourBeforeStart: oneHourBeforeStart.toISOString(),
           currentTime: now.toISOString(),
           isToday,
           hasForecast,
-          hasStarted,
+          isWithinPreStartWindow,
           hasNotEnded,
           isOngoing,
           included: isToday && hasForecast && isOngoing
@@ -301,29 +308,75 @@ class CronService {
     // Initialize with existing structure or create new
     const merged = existingPredictResult ? JSON.parse(JSON.stringify(existingPredictResult)) : {};
 
-    // Extract predictions from the new result
+    // Get forecast gate list and capacities
+    const forecastGates = this.getForecastGateList(event.forecastResult);
+    const gateCapacities = this.extractGateCapacitiesFromForecast(event.forecastResult);
+
+    // Create reverse mapping: prediction gate_id -> forecast gate ID
+    const predictionToForecastMap = this.createPredictionToForecastMapping(forecastGates);
+
+    logger.info('Initializing predict_result for all forecast gates', {
+      forecastGates,
+      gateCapacities
+    });
+
+    // ✅ STEP 1: Initialize ALL forecast gates with their capacities from forecast_result.summary.predictions
+    forecastGates.forEach(forecastGateId => {
+      if (!merged[forecastGateId]) {
+        // Get capacity from forecast_result.summary.predictions (most reliable source)
+        let capacity = 100; // default
+        
+        if (event.forecastResult?.summary?.predictions) {
+          const summaryPred = event.forecastResult.summary.predictions.find(p => p.gate === forecastGateId);
+          if (summaryPred && summaryPred.capacity) {
+            capacity = summaryPred.capacity;
+          }
+        }
+        
+        // Fallback: try forecast object
+        if (capacity === 100 && event.forecastResult?.forecast?.[forecastGateId]?.capacity) {
+          capacity = event.forecastResult.forecast[forecastGateId].capacity;
+        }
+        
+        merged[forecastGateId] = {
+          capacity,
+          timeFrames: []
+        };
+        
+        logger.info('Initialized gate in predict_result', { forecastGateId, capacity });
+      }
+    });
+
+    // ✅ STEP 2: Add prediction data if model returned any
     const predictions = newPredictionResult.predictions || [];
     const timestamp = newPredictionResult.metadata?.requestedAt || new Date().toISOString();
 
-    // Get gate capacities from forecast_result
-    const gateCapacities = this.extractGateCapacitiesFromForecast(event.forecastResult);
+    if (predictions.length === 0) {
+      logger.warn('No predictions from model, returning initialized gates with existing data');
+      return merged;
+    }
 
-    // Group predictions by gate_id
+    logger.info('Processing model predictions', {
+      predictionsCount: predictions.length,
+      modelGateIds: predictions.map(p => p.gate_id),
+      predictionToForecastMap,
+      forecastGates
+    });
+
+    // Process each prediction from model
     predictions.forEach(prediction => {
-      const gateId = prediction.gate_id;
+      const modelGateId = prediction.gate_id;
       
-      // Get correct capacity from forecast_result
-      const correctCapacity = gateCapacities[gateId] || prediction.total_capacity || 100;
+      // Map model gate_id to forecast gate ID
+      const forecastGateId = predictionToForecastMap[modelGateId];
       
-      // Initialize gate structure if it doesn't exist
-      if (!merged[gateId]) {
-        merged[gateId] = {
-          capacity: correctCapacity,
-          timeFrames: []
-        };
-      } else if (merged[gateId].capacity !== correctCapacity) {
-        // Update capacity if it changed
-        merged[gateId].capacity = correctCapacity;
+      if (!forecastGateId) {
+        logger.warn('Skipping prediction for unknown gate', {
+          modelGateId,
+          forecastGates,
+          availableMapping: predictionToForecastMap
+        });
+        return; // Skip gates not in forecast
       }
 
       // ✅ Extract values from correct model response fields
@@ -339,15 +392,16 @@ class CronService {
       };
 
       // Append to timeFrames array (don't replace!)
-      merged[gateId].timeFrames.push(newTimeFrame);
+      merged[forecastGateId].timeFrames.push(newTimeFrame);
 
       logger.debug('Appended prediction timeframe', {
-        gateId,
+        modelGateId,
+        forecastGateId,
         timestamp: newTimeFrame.timestamp,
         predicted: newTimeFrame.predicted,
         actual: newTimeFrame.actual,
-        capacity: correctCapacity,
-        totalTimeFrames: merged[gateId].timeFrames.length
+        capacity: merged[forecastGateId].capacity,
+        totalTimeFrames: merged[forecastGateId].timeFrames.length
       });
     });
 
@@ -355,7 +409,56 @@ class CronService {
   }
 
   /**
+   * Gets list of gates from forecast_result
+   * @param {Object} forecastResult - Forecast result object
+   * @returns {Array} - Array of gate IDs from forecast
+   */
+  getForecastGateList(forecastResult) {
+    if (!forecastResult) {
+      // No forecast_result: return default gate IDs
+      logger.warn('No forecast_result provided, using default gates');
+      return ['gate_1', 'gate_2', 'gate_3'];
+    }
+    
+    // Try summary.gates first (most reliable)
+    if (forecastResult.summary?.gates && forecastResult.summary.gates.length > 0) {
+      return forecastResult.summary.gates;
+    }
+    
+    // Fallback: extract from forecast object keys
+    if (forecastResult.forecast && Object.keys(forecastResult.forecast).length > 0) {
+      return Object.keys(forecastResult.forecast);
+    }
+    
+    // If forecast_result exists but has no gates structure, use default
+    logger.warn('Forecast_result has no gates structure, using default gates');
+    return ['gate_1', 'gate_2', 'gate_3'];
+  }
+
+  /**
+   * Creates reverse mapping from prediction gate IDs to forecast gate IDs
+   * @param {Array} forecastGates - Array of gate IDs from forecast (e.g., ["1", "A", "B"])
+   * @returns {Object} - Map of prediction gate_id to forecast gate ID
+   */
+  createPredictionToForecastMapping(forecastGates) {
+    const mapping = {};
+    
+    forecastGates.forEach(forecastGateId => {
+      // Get all possible prediction formats for this forecast gate
+      const predictionIds = this.mapForecastGateIdToPredictionIds(forecastGateId);
+      
+      // Map each prediction ID back to the forecast gate ID
+      predictionIds.forEach(predictionId => {
+        mapping[predictionId] = forecastGateId;
+      });
+    });
+    
+    return mapping;
+  }
+
+  /**
    * Extracts gate capacities from forecast_result
+   * Maps gate IDs from forecast format to prediction format
    * @param {Object} forecastResult - Forecast result object
    * @returns {Object} - Map of gate_id to capacity
    */
@@ -363,31 +466,88 @@ class CronService {
     const capacities = {};
     
     if (!forecastResult) {
+      logger.debug('No forecast_result, capacities will use model defaults');
       return capacities;
     }
 
     // Check forecast_result.summary.predictions for capacity
-    if (forecastResult.summary?.predictions) {
+    if (forecastResult.summary?.predictions && forecastResult.summary.predictions.length > 0) {
       forecastResult.summary.predictions.forEach(pred => {
         if (pred.gate && pred.capacity) {
-          capacities[pred.gate] = pred.capacity;
+          const gateId = pred.gate;
+          
+          // Map forecast gate IDs to prediction gate IDs
+          // forecast: "1", "2", "A", "B" 
+          // prediction: "gate_1", "gate_2", "gate_3", etc.
+          const mappedIds = this.mapForecastGateIdToPredictionIds(gateId);
+          
+          // Store capacity for all mapped IDs
+          mappedIds.forEach(id => {
+            capacities[id] = pred.capacity;
+          });
         }
       });
     }
 
     // Check forecast_result.forecast for capacity (alternative structure)
-    if (forecastResult.forecast) {
+    if (forecastResult.forecast && Object.keys(forecastResult.forecast).length > 0) {
       Object.keys(forecastResult.forecast).forEach(gateId => {
         const gateData = forecastResult.forecast[gateId];
         if (gateData.capacity) {
-          capacities[gateId] = gateData.capacity;
+          // Map and store capacity
+          const mappedIds = this.mapForecastGateIdToPredictionIds(gateId);
+          mappedIds.forEach(id => {
+            capacities[id] = gateData.capacity;
+          });
         }
       });
     }
 
-    logger.debug('Extracted gate capacities from forecast', { capacities });
+    // If no capacities found, it means forecast_result has no proper structure
+    // Capacities will be taken from model response (prediction.total_capacity)
+    if (Object.keys(capacities).length === 0) {
+      logger.debug('No capacities found in forecast_result, will use model defaults');
+    }
+
+    logger.debug('Extracted gate capacities from forecast', { capacities, capacityCount: Object.keys(capacities).length });
 
     return capacities;
+  }
+
+  /**
+   * Maps forecast gate IDs to prediction gate IDs
+   * Handles different naming conventions between forecast and prediction
+   * @param {String} forecastGateId - Gate ID from forecast (e.g., "1", "A")
+   * @returns {Array} - Array of possible prediction gate IDs
+   */
+  mapForecastGateIdToPredictionIds(forecastGateId) {
+    const mappedIds = [];
+    
+    // Always include the original ID
+    mappedIds.push(forecastGateId);
+    
+    // Map numeric IDs: "1" -> "gate_1"
+    if (/^\d+$/.test(forecastGateId)) {
+      mappedIds.push(`gate_${forecastGateId}`);
+    }
+    
+    // Map letter IDs: "A" -> "gate_3", "gate_A"
+    // A=1st gate (sometimes gate_3), B=2nd gate (gate_4), etc.
+    if (/^[A-Z]$/.test(forecastGateId)) {
+      mappedIds.push(`gate_${forecastGateId}`);
+      
+      // Also map to numeric: A->gate_3, B->gate_4 (common pattern)
+      const letterIndex = forecastGateId.charCodeAt(0) - 'A'.charCodeAt(0);
+      mappedIds.push(`gate_${letterIndex + 3}`); // A=gate_3, B=gate_4, C=gate_5
+    }
+    
+    // Map with "gate_" prefix: "gate_1" -> stays as is
+    if (forecastGateId.startsWith('gate_')) {
+      // Already in prediction format, keep as is
+      // (already added as original ID)
+    }
+    
+    return mappedIds;
   }
 
   /**
@@ -403,6 +563,27 @@ class CronService {
     const seconds = String(date.getSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  }
+
+  /**
+   * Parses a timestamp string as UTC
+   * Forecast timestamps are in format "YYYY-MM-DD HH:mm:ss" without timezone info
+   * They represent UTC time but need explicit parsing
+   * @param {String} timestamp - Timestamp string in format "YYYY-MM-DD HH:mm:ss"
+   * @returns {Date} - Date object in UTC
+   */
+  parseAsUTC(timestamp) {
+    if (!timestamp) return new Date();
+    
+    // If timestamp already has timezone info (Z or +00:00), parse normally
+    if (timestamp.includes('Z') || timestamp.includes('+') || timestamp.includes('-')) {
+      return new Date(timestamp);
+    }
+    
+    // For "YYYY-MM-DD HH:mm:ss" format, append 'Z' to parse as UTC
+    // Replace space with 'T' for ISO format: "YYYY-MM-DDTHH:mm:ssZ"
+    const isoFormat = timestamp.replace(' ', 'T') + 'Z';
+    return new Date(isoFormat);
   }
 
   /**

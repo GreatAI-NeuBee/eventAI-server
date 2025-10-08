@@ -5,6 +5,19 @@ const eventService = require('../services/eventService');
 const predictionService = require('../services/predictionService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
+/**
+ * Parses a timestamp string as UTC
+ * Forecast timestamps are in format "YYYY-MM-DD HH:mm:ss" without timezone info
+ */
+const parseAsUTC = (timestamp) => {
+  if (!timestamp) return new Date();
+  if (timestamp.includes("Z") || timestamp.includes("+") || timestamp.includes("-")) {
+    return new Date(timestamp);
+  }
+  const isoFormat = timestamp.replace(" ", "T") + "Z";
+  return new Date(isoFormat);
+};
+
 const router = express.Router();
 
 /**
@@ -207,32 +220,37 @@ router.post('/:eventId', asyncHandler(async (req, res) => {
     if (event.forecastResult?.summary?.forecastPeriod) {
       const period = event.forecastResult.summary.forecastPeriod;
       if (period.start) {
-        forecastStart = new Date(period.start);
+        forecastStart = parseAsUTC(period.start);
       }
       if (period.end) {
-        forecastEnd = new Date(period.end);
+        forecastEnd = parseAsUTC(period.end);
       }
     }
     
     // Check if current time is within forecast period
-    const hasStarted = now >= forecastStart;
+    // Allow prediction to start 1 hour before event starts
+    const ONE_HOUR_MS = 60 * 60 * 1000;
+    const oneHourBeforeStart = new Date(forecastStart.getTime() - ONE_HOUR_MS);
+    
+    const isWithinPreStartWindow = now >= oneHourBeforeStart;
     const hasNotEnded = now <= forecastEnd;
-    const isOngoing = hasStarted && hasNotEnded;
+    const isOngoing = isWithinPreStartWindow && hasNotEnded;
 
     logger.info('Time validation check', {
       eventId,
       currentTime: now.toISOString(),
       forecastStart: forecastStart.toISOString(),
       forecastEnd: forecastEnd.toISOString(),
-      hasStarted,
+      oneHourBeforeStart: oneHourBeforeStart.toISOString(),
+      isWithinPreStartWindow,
       hasNotEnded,
       isOngoing
     });
 
     // ❌ Reject if outside time range
     if (!isOngoing) {
-      const errorMessage = !hasStarted 
-        ? `Event has not started yet. Prediction will be available from ${forecastStart.toISOString()}`
+      const errorMessage = !isWithinPreStartWindow 
+        ? `Event has not started yet. Prediction will be available from ${oneHourBeforeStart.toISOString()} (1 hour before event starts)`
         : `Event has already ended at ${forecastEnd.toISOString()}`;
       
       return res.status(400).json({

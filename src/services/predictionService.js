@@ -110,8 +110,47 @@ class PredictionService {
       // Based on typical forecast results, we'll extract gate information
       const gatesInfo = [];
 
-      // If forecast_result has gates array
-      if (forecastResult.gates && Array.isArray(forecastResult.gates)) {
+      // Priority 1: Check forecast_result.summary.gates + forecast_result.forecast
+      if (forecastResult.summary?.gates && Array.isArray(forecastResult.summary.gates) && forecastResult.forecast) {
+        logger.info('Extracting gates from forecast_result.summary.gates and forecast', { 
+          eventId: event.eventId,
+          gateIds: forecastResult.summary.gates
+        });
+        
+        forecastResult.summary.gates.forEach((gateId) => {
+          const gateData = forecastResult.forecast[gateId];
+          const gatePrediction = forecastResult.summary.predictions?.find(p => p.gate === gateId);
+          
+          // Get the latest timeframe data for historical count
+          const latestTimeFrame = gateData?.timeFrames?.[gateData.timeFrames.length - 1];
+          
+          const gateInfo = {
+            gate_id: gateId, // Use forecast gate ID directly (e.g., "1", "A", "B")
+            zone: `Gate ${gateId}`,
+            image_path: this.getDefaultImagePath('medium'), // Use default medium congestion image
+            total_capacity: gateData?.capacity || gatePrediction?.capacity || 100,
+            event_type: this.mapEventType(event.eventType || 'OTHER'),
+            historical_count: latestTimeFrame?.predicted || gatePrediction?.avgPrediction || Math.floor(Math.random() * 50)
+          };
+          
+          gatesInfo.push(gateInfo);
+          
+          logger.debug('Created gate_info for model', {
+            gateId,
+            gate_id: gateInfo.gate_id,
+            capacity: gateInfo.total_capacity,
+            hasGateData: !!gateData,
+            hasTimeFrames: !!gateData?.timeFrames,
+            timeFramesCount: gateData?.timeFrames?.length || 0
+          });
+        });
+      }
+      // Priority 2: Check forecast_result.gates array (old format)
+      else if (forecastResult.gates && Array.isArray(forecastResult.gates)) {
+        logger.info('Extracting gates from forecast_result.gates array', { 
+          eventId: event.eventId 
+        });
+        
         forecastResult.gates.forEach((gate, index) => {
           gatesInfo.push({
             gate_id: gate.gate_id || gate.id || `gate_${index + 1}`,
@@ -119,10 +158,12 @@ class PredictionService {
             image_path: gate.image_path || this.getDefaultImagePath('medium'),
             total_capacity: gate.capacity || gate.total_capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
-            historical_count: gate.current_count || gate.historical_count || Math.floor(Math.random() * 50) // Fallback to random if not available
+            historical_count: gate.current_count || gate.historical_count || Math.floor(Math.random() * 50)
           });
         });
-      } else {
+      } 
+      // Fallback: Create default gates
+      else {
         // If no gates structure, create default gates based on event data
         logger.warn('No gates structure found in forecast_result, creating default gates', { 
           eventId: event.eventId 
