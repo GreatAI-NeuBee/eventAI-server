@@ -567,8 +567,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
       });
   }
   
-  // Initialize cron service for predictions
-  cronService.start();
+  // Initialize cron services
+  cronService.start(); // Prediction updates
+  cronService.startCCTV(); // CCTV snapshots
 });
 
 module.exports = app;

@@ -124,10 +124,32 @@ class PredictionService {
           // Get the latest timeframe data for historical count
           const latestTimeFrame = gateData?.timeFrames?.[gateData.timeFrames.length - 1];
           
+          // Get real CCTV image from webcamImages if available
+          const webcamImage = event.webcamImages?.find(img => img.gateId === gateId);
+          
+          // Priority: webcamImages > environment CDN URLs > default placeholder
+          let imagePath;
+          if (webcamImage?.imageUrl) {
+            // Use S3 uploaded image if available (from CCTV cron)
+            imagePath = webcamImage.imageUrl;
+            logger.debug('Using webcamImage from S3', { gateId, imageUrl: imagePath });
+          } else {
+            // Check for direct CDN URL in environment variables
+            const envKey = `CCTV_GATE_${gateId}_URL`;
+            const cdnUrl = process.env[envKey];
+            if (cdnUrl) {
+              imagePath = cdnUrl;
+              logger.info('Using direct CDN URL from environment', { gateId, envKey, cdnUrl });
+            } else {
+              imagePath = this.getDefaultImagePath('medium');
+              logger.debug('Using default placeholder image', { gateId });
+            }
+          }
+          
           const gateInfo = {
             gate_id: gateId, // Use forecast gate ID directly (e.g., "1", "A", "B")
             zone: `Gate ${gateId}`,
-            image_path: this.getDefaultImagePath('medium'), // Use default medium congestion image
+            image_path: imagePath, // Use real CCTV image from S3 if available
             total_capacity: gateData?.capacity || gatePrediction?.capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: latestTimeFrame?.predicted || gatePrediction?.avgPrediction || Math.floor(Math.random() * 50)

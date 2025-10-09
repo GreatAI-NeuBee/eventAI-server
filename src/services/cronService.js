@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const winston = require('winston');
 const eventService = require('./eventService');
 const predictionService = require('./predictionService');
+const cctvService = require('./cctvService');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -21,15 +22,25 @@ const logger = winston.createLogger({
 
 class CronService {
   constructor() {
+    // Prediction cron job configuration
     this.predictionTask = null;
     this.isEnabled = process.env.ENABLE_PREDICTION_CRON === 'true';
     // Run at standard 5-minute intervals: :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55
     this.cronPattern = process.env.PREDICTION_CRON_PATTERN || '0,5,10,15,20,25,30,35,40,45,50,55 * * * *';
     
+    // CCTV snapshot cron job configuration
+    this.cctvTask = null;
+    this.cctvEnabled = process.env.ENABLE_CCTV_CRON === 'true';
+    // Run every 3 minutes: */3 * * * *
+    this.cctvCronPattern = process.env.CCTV_CRON_PATTERN || '*/3 * * * *';
+    
     logger.info('CronService initialized', { 
-      isEnabled: this.isEnabled,
-      cronPattern: this.cronPattern,
-      description: 'Runs at standard 5-minute intervals (:00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)'
+      predictionEnabled: this.isEnabled,
+      predictionPattern: this.cronPattern,
+      predictionDescription: 'Runs at standard 5-minute intervals (:00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)',
+      cctvEnabled: this.cctvEnabled,
+      cctvPattern: this.cctvCronPattern,
+      cctvDescription: 'Runs every 3 minutes'
     });
   }
 
@@ -60,6 +71,32 @@ class CronService {
   }
 
   /**
+   * Starts the CCTV snapshot cron job
+   */
+  startCCTV() {
+    if (!this.cctvEnabled) {
+      logger.info('CCTV snapshot cron job is disabled via environment variable');
+      return;
+    }
+
+    if (this.cctvTask) {
+      logger.warn('CCTV snapshot cron job is already running');
+      return;
+    }
+
+    logger.info('Starting CCTV snapshot cron job', { pattern: this.cctvCronPattern });
+
+    this.cctvTask = cron.schedule(this.cctvCronPattern, async () => {
+      await this.runCCTVSnapshot();
+    }, {
+      scheduled: true,
+      timezone: process.env.TZ || 'UTC'
+    });
+
+    logger.info('CCTV snapshot cron job started successfully');
+  }
+
+  /**
    * Stops the prediction cron job
    */
   stop() {
@@ -69,6 +106,19 @@ class CronService {
       logger.info('Prediction cron job stopped');
     } else {
       logger.info('No prediction cron job to stop');
+    }
+  }
+
+  /**
+   * Stops the CCTV snapshot cron job
+   */
+  stopCCTV() {
+    if (this.cctvTask) {
+      this.cctvTask.stop();
+      this.cctvTask = null;
+      logger.info('CCTV snapshot cron job stopped');
+    } else {
+      logger.info('No CCTV snapshot cron job to stop');
     }
   }
 
@@ -625,11 +675,59 @@ class CronService {
   }
 
   /**
+   * Runs CCTV snapshot capture and upload for all ongoing events
+   * Called by the CCTV cron job
+   */
+  async runCCTVSnapshot() {
+    const startTime = Date.now();
+    
+    try {
+      logger.info('CCTV snapshot cron job started');
+
+      // Process all ongoing events
+      const result = await cctvService.processAllOngoingEvents();
+
+      const duration = Date.now() - startTime;
+
+      logger.info('CCTV snapshot cron job completed', {
+        duration,
+        totalEvents: result.totalEvents || 0,
+        successful: result.successCount || 0,
+        failed: result.failureCount || 0
+      });
+
+      return result;
+
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      
+      logger.error('Error in CCTV snapshot cron job', {
+        error: error.message,
+        duration
+      });
+
+      return {
+        success: false,
+        error: error.message,
+        duration
+      };
+    }
+  }
+
+  /**
    * Manually triggers a prediction update (for testing)
    */
   async triggerManualUpdate() {
     logger.info('Manually triggering prediction update');
     await this.runPredictionUpdate();
+  }
+
+  /**
+   * Manually triggers a CCTV snapshot (for testing)
+   */
+  async triggerManualCCTVSnapshot() {
+    logger.info('Manually triggering CCTV snapshot');
+    await this.runCCTVSnapshot();
   }
 }
 
