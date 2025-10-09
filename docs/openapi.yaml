@@ -538,7 +538,12 @@ paths:
 
     get:
       summary: Get all events
-      description: Retrieves a paginated list of events
+      description: |
+        Retrieves a paginated, searchable, and sortable list of events.
+        
+        **Search:** Use `search` parameter to search event names (case-insensitive)
+        **Sort:** Use `sortBy` and `sortOrder` to control result ordering
+        **Filter:** Multiple filter options available for refined queries
       tags:
         - Events
       parameters:
@@ -557,15 +562,78 @@ paths:
             minimum: 1
             maximum: 100
             default: 10
+        - name: search
+          in: query
+          description: Search events by name (case-insensitive, partial match using ILIKE)
+          schema:
+            type: string
+            example: "music festival"
+        - name: sortBy
+          in: query
+          description: Field to sort by
+          schema:
+            type: string
+            enum: 
+              - date_of_event_start
+              - date_of_event_end
+              - name
+              - venue
+              - created_at
+              - updated_at
+              - status
+            default: date_of_event_start
+        - name: sortOrder
+          in: query
+          description: Sort order (ascending or descending)
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
         - name: status
           in: query
           description: Filter by event status
           schema:
             type: string
             enum: [CREATED, ACTIVE, COMPLETED, CANCELLED]
+        - name: venue
+          in: query
+          description: Filter by venue name (case-insensitive, partial match)
+          schema:
+            type: string
+            example: "stadium"
+        - name: upcoming
+          in: query
+          description: Filter for upcoming events only (start date >= now)
+          schema:
+            type: boolean
+            example: true
+        - name: past
+          in: query
+          description: Filter for past events only (end date < now)
+          schema:
+            type: boolean
+            example: true
+        - name: ongoing
+          in: query
+          description: Filter for currently ongoing events
+          schema:
+            type: boolean
+            example: true
+        - name: withForecast
+          in: query
+          description: Filter for events with forecast results
+          schema:
+            type: boolean
+            example: true
+        - name: myEvents
+          in: query
+          description: Filter for user's own events (requires x-user-email header or userEmail param)
+          schema:
+            type: boolean
+            example: true
       responses:
         '200':
-          description: List of events
+          description: List of events with filters, sorting, and pagination
           content:
             application/json:
               schema:
@@ -581,8 +649,57 @@ paths:
                         type: array
                         items:
                           $ref: '#/components/schemas/Event'
+                      filters:
+                        type: object
+                        properties:
+                          userEmail:
+                            type: string
+                            nullable: true
+                          isMyEvents:
+                            type: boolean
+                          appliedFilters:
+                            type: array
+                            items:
+                              type: string
+                      sorting:
+                        type: object
+                        properties:
+                          sortBy:
+                            type: string
+                            example: "date_of_event_start"
+                          sortOrder:
+                            type: string
+                            example: "asc"
                       pagination:
                         $ref: '#/components/schemas/Pagination'
+              examples:
+                searchExample:
+                  summary: Search events by name
+                  value:
+                    success: true
+                    data:
+                      events: []
+                      filters:
+                        appliedFilters: ["search"]
+                      sorting:
+                        sortBy: "date_of_event_start"
+                        sortOrder: "asc"
+                      pagination:
+                        currentPage: 1
+                        totalPages: 1
+                        totalItems: 5
+                sortExample:
+                  summary: Sort events by name descending
+                  value:
+                    success: true
+                    data:
+                      events: []
+                      sorting:
+                        sortBy: "name"
+                        sortOrder: "desc"
+                      pagination:
+                        currentPage: 1
+                        totalPages: 1
         '500':
           $ref: '#/components/responses/InternalServerError'
 

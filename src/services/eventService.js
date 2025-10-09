@@ -128,9 +128,9 @@ class EventService {
    * @param {Object} filters - Filter criteria
    * @returns {Promise<{events: Object[], total: number}>} - Events and total count
    */
-  async getEvents(limit = 10, offset = 0, filters = {}) {
+  async getEvents(limit = 10, offset = 0, filters = {}, sortBy = 'date_of_event_start', sortOrder = 'asc') {
     try {
-      logger.info('Retrieving events with pagination', { limit, offset, filters });
+      logger.info('Retrieving events with pagination', { limit, offset, filters, sortBy, sortOrder });
 
       // Get total count first (with filters applied)
       let countQuery = this.client.from('events').select('*', { count: 'exact', head: true });
@@ -171,12 +171,13 @@ class EventService {
       const { count, error: countError } = await countQuery;
       if (countError) throw countError;
 
-      // Get events data
+      // Get events data with sorting
+      const ascending = sortOrder === 'asc';
       let dataQuery = this.client.from('events')
         .select(`
           id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
-        .order('date_of_event_start', { ascending: true })
+        .order(sortBy, { ascending })
         .range(offset, offset + limit - 1);
 
       // Apply same filters to data query

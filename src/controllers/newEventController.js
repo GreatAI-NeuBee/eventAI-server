@@ -394,10 +394,34 @@ router.get('/', asyncHandler(async (req, res) => {
   if (req.query.status) filters.status = req.query.status;
   if (req.query.venue) filters.venue = req.query.venue;
 
-  logger.info('Retrieving events', { page, limit, filters, requestedBy: filters.userEmail || 'anonymous' });
+  // Sorting parameters
+  const sortBy = req.query.sortBy || 'date_of_event_start'; // Default sort by event start date
+  const sortOrder = req.query.sortOrder?.toLowerCase() === 'desc' ? 'desc' : 'asc'; // Default ascending
+  
+  // Validate sortBy field
+  const allowedSortFields = [
+    'date_of_event_start', 
+    'date_of_event_end', 
+    'name', 
+    'venue', 
+    'created_at', 
+    'updated_at',
+    'status'
+  ];
+  
+  const validSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'date_of_event_start';
+
+  logger.info('Retrieving events', { 
+    page, 
+    limit, 
+    filters, 
+    sortBy: validSortBy, 
+    sortOrder, 
+    requestedBy: filters.userEmail || 'anonymous' 
+  });
 
   try {
-    const result = await eventService.getEvents(limit, offset, filters);
+    const result = await eventService.getEvents(limit, offset, filters, validSortBy, sortOrder);
 
     const totalPages = Math.ceil(result.total / limit);
     const hasNextPage = page < totalPages;
@@ -411,6 +435,10 @@ router.get('/', asyncHandler(async (req, res) => {
           userEmail: filters.userEmail || null,
           isMyEvents: !!req.query.myEvents,
           appliedFilters: Object.keys(filters).filter(key => filters[key] !== undefined)
+        },
+        sorting: {
+          sortBy: validSortBy,
+          sortOrder: sortOrder
         },
         pagination: {
           currentPage: page,
