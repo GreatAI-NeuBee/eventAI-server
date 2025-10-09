@@ -173,18 +173,19 @@ class CronService {
       const nowMalaysia = new Date(nowUTC.getTime() + MALAYSIA_OFFSET_MS);
       
       // Get Malaysia date boundaries (midnight to 11:59:59 PM Malaysia time)
-      const malaysiaTodayStart = new Date(
-        nowMalaysia.getFullYear(),
-        nowMalaysia.getMonth(),
-        nowMalaysia.getDate(),
+      // Use Date.UTC to ensure we're working in UTC, then the date is already offset-adjusted
+      const malaysiaTodayStart = new Date(Date.UTC(
+        nowMalaysia.getUTCFullYear(),
+        nowMalaysia.getUTCMonth(),
+        nowMalaysia.getUTCDate(),
         0, 0, 0, 0
-      );
-      const malaysiaTodayEnd = new Date(
-        nowMalaysia.getFullYear(),
-        nowMalaysia.getMonth(),
-        nowMalaysia.getDate(),
+      ));
+      const malaysiaTodayEnd = new Date(Date.UTC(
+        nowMalaysia.getUTCFullYear(),
+        nowMalaysia.getUTCMonth(),
+        nowMalaysia.getUTCDate(),
         23, 59, 59, 999
-      );
+      ));
       
       logger.info('Getting ongoing events (Malaysia timezone)', { 
         currentTimeUTC: nowUTC.toISOString(),
@@ -209,37 +210,29 @@ class CronService {
         
         // Check if event is scheduled for today in Malaysia timezone
         const eventStartMalaysia = new Date(eventStartUTC.getTime() + MALAYSIA_OFFSET_MS);
-        const eventStartDateOnly = new Date(
-          eventStartMalaysia.getFullYear(),
-          eventStartMalaysia.getMonth(),
-          eventStartMalaysia.getDate()
-        );
-        const todayDateOnly = new Date(
-          nowMalaysia.getFullYear(),
-          nowMalaysia.getMonth(),
-          nowMalaysia.getDate()
-        );
+        const eventStartDateOnly = new Date(Date.UTC(
+          eventStartMalaysia.getUTCFullYear(),
+          eventStartMalaysia.getUTCMonth(),
+          eventStartMalaysia.getUTCDate()
+        ));
+        const todayDateOnly = new Date(Date.UTC(
+          nowMalaysia.getUTCFullYear(),
+          nowMalaysia.getUTCMonth(),
+          nowMalaysia.getUTCDate()
+        ));
         
         const isToday = eventStartDateOnly.getTime() === todayDateOnly.getTime();
         const hasForecast = !!event.forecastResult;
         
+        // Require forecast - events need forecast data to generate predictions
         if (!isToday || !hasForecast) {
           return false;
         }
 
-        // Use forecast period if available, otherwise use event times
-        let forecastStartUTC = eventStartUTC;
-        let forecastEndUTC = eventEndUTC;
-        
-        if (event.forecastResult?.summary?.forecastPeriod) {
-          const period = event.forecastResult.summary.forecastPeriod;
-          if (period.start) {
-            forecastStartUTC = this.parseAsUTC(period.start);
-          }
-          if (period.end) {
-            forecastEndUTC = this.parseAsUTC(period.end);
-          }
-        }
+        // ALWAYS use actual event times, not forecast period
+        // Forecast period might be outdated or incorrect
+        const forecastStartUTC = eventStartUTC;
+        const forecastEndUTC = eventEndUTC;
         
         // ✅ ADDITIONAL CONDITION: Start predictions 1 hour before event starts (Malaysia timezone aware)
         // Example: Event at 12:00 PM Malaysia (04:00 UTC) → Start predictions at 11:00 AM Malaysia (03:00 UTC)
@@ -321,12 +314,13 @@ class CronService {
    * @returns {string} - Formatted string (YYYY-MM-DD HH:mm:ss MYT)
    */
   formatMalaysiaTime(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
+    // Use UTC methods since the date is already offset-adjusted
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
     
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} MYT`;
   }
