@@ -152,7 +152,7 @@ class PredictionService {
         });
         
         forecastResult.gates.forEach((gate, index) => {
-          gatesInfo.push({
+        gatesInfo.push({
             gate_id: gate.gate_id || gate.id || `gate_${index + 1}`,
             zone: gate.zone || gate.name || `Zone ${String.fromCharCode(65 + index)}`, // A, B, C, etc.
             image_path: gate.image_path || this.getDefaultImagePath('medium'),

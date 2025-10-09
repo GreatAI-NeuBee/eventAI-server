@@ -6,14 +6,34 @@ const predictionService = require('../services/predictionService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 /**
- * Parses a timestamp string as UTC
+ * Parses a timestamp string from forecast_result
  * Forecast timestamps are in format "YYYY-MM-DD HH:mm:ss" without timezone info
+ * They represent Malaysia local time (UTC+8) and need to be converted to UTC
  */
 const parseAsUTC = (timestamp) => {
   if (!timestamp) return new Date();
   if (timestamp.includes("Z") || timestamp.includes("+") || timestamp.includes("-")) {
     return new Date(timestamp);
   }
+  
+  // For "YYYY-MM-DD HH:mm:ss" format without timezone
+  // Treat as Malaysia time (UTC+8) and convert to UTC by subtracting 8 hours
+  const match = timestamp.match(/(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (match) {
+    const [, year, month, day, hour, minute, second] = match;
+    const MALAYSIA_OFFSET_HOURS = 8;
+    return new Date(Date.UTC(
+      parseInt(year),
+      parseInt(month) - 1, // Month is 0-indexed
+      parseInt(day),
+      parseInt(hour) - MALAYSIA_OFFSET_HOURS, // Convert Malaysia time to UTC
+      parseInt(minute),
+      parseInt(second)
+    ));
+  }
+  
+  // Fallback: try appending 'Z' (may not work correctly in all timezones)
+  logger.warn('parseAsUTC: Unable to parse timestamp with regex, falling back', { timestamp });
   const isoFormat = timestamp.replace(" ", "T") + "Z";
   return new Date(isoFormat);
 };
