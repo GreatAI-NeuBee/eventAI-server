@@ -21,6 +21,19 @@ class PredictionService {
   constructor() {
     this.modelEndpoint = process.env.PREDICTION_MODEL_ENDPOINT || 'http://56.68.30.73/predict';
     this.timeout = parseInt(process.env.PREDICTION_TIMEOUT) || 30000; // 30 seconds default
+    
+    // Base URL for congestion images
+    this.congestionImageBaseUrl = 'https://vkaongvemnzkvvvxgduk.supabase.co/storage/v1/object/public/congestion_image/';
+    
+    // Array of congestion images (congested1.jpg to congested13.jpg)
+    this.congestionImages = Array.from({ length: 13 }, (_, i) => 
+      `${this.congestionImageBaseUrl}congested${i + 1}.jpg`
+    );
+    
+    logger.info('PredictionService initialized', {
+      modelEndpoint: this.modelEndpoint,
+      congestionImagesCount: this.congestionImages.length
+    });
   }
 
   /**
@@ -117,17 +130,20 @@ class PredictionService {
           gateIds: forecastResult.summary.gates
         });
         
-        forecastResult.summary.gates.forEach((gateId) => {
+        forecastResult.summary.gates.forEach((gateId, index) => {
           const gateData = forecastResult.forecast[gateId];
           const gatePrediction = forecastResult.summary.predictions?.find(p => p.gate === gateId);
           
           // Get the latest timeframe data for historical count
           const latestTimeFrame = gateData?.timeFrames?.[gateData.timeFrames.length - 1];
           
+          // Select different image for each gate from the congestion images array
+          const imageUrl = this.getImageForGate(index);
+          
           const gateInfo = {
             gate_id: gateId, // Use forecast gate ID directly (e.g., "1", "A", "B")
             zone: `Gate ${gateId}`,
-            image_path: this.getDefaultImagePath('medium'), // Use default medium congestion image
+            image_path: imageUrl, // Each gate gets a different congestion image
             total_capacity: gateData?.capacity || gatePrediction?.capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: latestTimeFrame?.predicted || gatePrediction?.avgPrediction || Math.floor(Math.random() * 50)
@@ -152,10 +168,13 @@ class PredictionService {
         });
         
         forecastResult.gates.forEach((gate, index) => {
-        gatesInfo.push({
+          // Select different image for each gate from the congestion images array
+          const imageUrl = this.getImageForGate(index);
+          
+          gatesInfo.push({
             gate_id: gate.gate_id || gate.id || `gate_${index + 1}`,
             zone: gate.zone || gate.name || `Zone ${String.fromCharCode(65 + index)}`, // A, B, C, etc.
-            image_path: gate.image_path || this.getDefaultImagePath('medium'),
+            image_path: gate.image_path || imageUrl,
             total_capacity: gate.capacity || gate.total_capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: gate.current_count || gate.historical_count || Math.floor(Math.random() * 50)
@@ -171,10 +190,13 @@ class PredictionService {
         
         // Create 3 default gates
         for (let i = 0; i < 3; i++) {
+          // Select different image for each gate from the congestion images array
+          const imageUrl = this.getImageForGate(i);
+          
           gatesInfo.push({
             gate_id: `gate_${i + 1}`,
             zone: `Zone ${String.fromCharCode(65 + i)}`, // A, B, C
-            image_path: this.getDefaultImagePath('medium'),
+            image_path: imageUrl,
             total_capacity: 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: Math.floor(Math.random() * 50) + 10 // Random between 10-60
@@ -199,7 +221,7 @@ class PredictionService {
       return [{
         gate_id: 'gate_1',
         zone: 'Zone A',
-        image_path: this.getDefaultImagePath('medium'),
+        image_path: this.getImageForGate(0),
         total_capacity: 100,
         event_type: 'concert',
         historical_count: 35
@@ -225,18 +247,41 @@ class PredictionService {
   }
 
   /**
-   * Gets default image path for congestion level
-   * @param {string} level - Congestion level (low, medium, high)
-   * @returns {string} - Image URL
+   * Gets image URL for a specific gate from the congestion images array
+   * Each gate gets a different image using round-robin selection
+   * @param {number} gateIndex - Gate index (0-based)
+   * @returns {string} - Image URL from the congestion images array
    */
-  getDefaultImagePath(level = 'medium') {
-    const imagePaths = {
-      low: 'https://vkaongvemnzkvvvxgduk.supabase.co/storage/v1/object/public/congestion_image/low_congested.jpg',
-      medium: 'https://vkaongvemnzkvvvxgduk.supabase.co/storage/v1/object/public/congestion_image/medium_congested.jpg',
-      high: 'https://vkaongvemnzkvvvxgduk.supabase.co/storage/v1/object/public/congestion_image/high_congested.jpg'
-    };
+  getImageForGate(gateIndex) {
+    // Use modulo to cycle through the 13 images if we have more gates than images
+    const imageIndex = gateIndex % this.congestionImages.length;
+    const imageUrl = this.congestionImages[imageIndex];
     
-    return imagePaths[level] || imagePaths.medium;
+    logger.debug('Selected image for gate', {
+      gateIndex,
+      imageIndex,
+      imageUrl,
+      imageName: `congested${imageIndex + 1}.jpg`
+    });
+    
+    return imageUrl;
+  }
+
+  /**
+   * Gets a random image from the congestion images array
+   * @returns {string} - Random image URL
+   */
+  getRandomImage() {
+    const randomIndex = Math.floor(Math.random() * this.congestionImages.length);
+    return this.congestionImages[randomIndex];
+  }
+
+  /**
+   * Gets all available congestion images
+   * @returns {Array} - Array of all congestion image URLs
+   */
+  getAllCongestionImages() {
+    return [...this.congestionImages];
   }
 
   /**

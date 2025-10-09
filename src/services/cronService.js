@@ -158,95 +158,177 @@ class CronService {
   }
 
   /**
-   * Gets events that are happening today (events scheduled for today)
+   * Gets events that are happening now (based on Malaysia timezone)
+   * Events are stored in UTC but represent Malaysia local times
    */
   async getOngoingEvents() {
     try {
-      const now = new Date();
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+      // Malaysia is UTC+8
+      const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000;
       
-      logger.info('Getting events for today', { 
-        todayStart: todayStart.toISOString(),
-        todayEnd: todayEnd.toISOString(),
-        currentTime: now.toISOString()
+      // Get current time in UTC
+      const nowUTC = new Date();
+      
+      // Get current time in Malaysia (for display/logging)
+      const nowMalaysia = new Date(nowUTC.getTime() + MALAYSIA_OFFSET_MS);
+      
+      // Get Malaysia date boundaries (midnight to 11:59:59 PM Malaysia time)
+      const malaysiaTodayStart = new Date(
+        nowMalaysia.getFullYear(),
+        nowMalaysia.getMonth(),
+        nowMalaysia.getDate(),
+        0, 0, 0, 0
+      );
+      const malaysiaTodayEnd = new Date(
+        nowMalaysia.getFullYear(),
+        nowMalaysia.getMonth(),
+        nowMalaysia.getDate(),
+        23, 59, 59, 999
+      );
+      
+      logger.info('Getting ongoing events (Malaysia timezone)', { 
+        currentTimeUTC: nowUTC.toISOString(),
+        currentTimeMalaysia: this.formatMalaysiaTime(nowMalaysia),
+        malaysiaTodayStart: this.formatMalaysiaTime(malaysiaTodayStart),
+        malaysiaTodayEnd: this.formatMalaysiaTime(malaysiaTodayEnd)
       });
       
-      // Get all events (no status filter since status management isn't implemented yet)
+      // Get all events
       const { events } = await eventService.getEvents(1000, 0, {});
 
-      // Filter for events happening today with forecast results
-      const todaysEvents = events.filter(event => {
-        const eventStart = new Date(event.dateOfEventStart);
-        const eventEnd = new Date(event.dateOfEventEnd);
+      // Filter for events happening NOW in Malaysia timezone
+      const ongoingEvents = events.filter(event => {
+        if (!event.dateOfEventStart || !event.dateOfEventEnd) {
+          return false;
+        }
+
+        // Event times are stored in UTC but represent Malaysia local times
+        // e.g., "2025-10-09T04:00:00.000Z" = 12:00 PM Malaysia time
+        const eventStartUTC = new Date(event.dateOfEventStart);
+        const eventEndUTC = new Date(event.dateOfEventEnd);
         
-        // Check if event is scheduled for today (event start date is today)
-        const eventStartDate = new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate());
-        const todayDate = new Date(todayStart.getFullYear(), todayStart.getMonth(), todayStart.getDate());
+        // Check if event is scheduled for today in Malaysia timezone
+        const eventStartMalaysia = new Date(eventStartUTC.getTime() + MALAYSIA_OFFSET_MS);
+        const eventStartDateOnly = new Date(
+          eventStartMalaysia.getFullYear(),
+          eventStartMalaysia.getMonth(),
+          eventStartMalaysia.getDate()
+        );
+        const todayDateOnly = new Date(
+          nowMalaysia.getFullYear(),
+          nowMalaysia.getMonth(),
+          nowMalaysia.getDate()
+        );
         
-        const isToday = eventStartDate.getTime() === todayDate.getTime();
+        const isToday = eventStartDateOnly.getTime() === todayDateOnly.getTime();
         const hasForecast = !!event.forecastResult;
         
+        if (!isToday || !hasForecast) {
+          return false;
+        }
+
         // Use forecast period if available, otherwise use event times
-        let forecastStart = eventStart;
-        let forecastEnd = eventEnd;
+        let forecastStartUTC = eventStartUTC;
+        let forecastEndUTC = eventEndUTC;
         
         if (event.forecastResult?.summary?.forecastPeriod) {
           const period = event.forecastResult.summary.forecastPeriod;
           if (period.start) {
-            // Forecast period timestamps are in format "YYYY-MM-DD HH:mm:ss" without timezone
-            // They represent UTC time, so we need to explicitly parse as UTC
-            forecastStart = this.parseAsUTC(period.start);
+            forecastStartUTC = this.parseAsUTC(period.start);
           }
           if (period.end) {
-            forecastEnd = this.parseAsUTC(period.end);
+            forecastEndUTC = this.parseAsUTC(period.end);
           }
         }
         
-        // Check if current time is within forecast period
-        // Allow prediction to start 1 hour before event starts
+        // ✅ ADDITIONAL CONDITION: Start predictions 1 hour before event starts (Malaysia timezone aware)
+        // Example: Event at 12:00 PM Malaysia (04:00 UTC) → Start predictions at 11:00 AM Malaysia (03:00 UTC)
         const ONE_HOUR_MS = 60 * 60 * 1000;
-        const oneHourBeforeStart = new Date(forecastStart.getTime() - ONE_HOUR_MS);
+        const oneHourBeforeStartUTC = new Date(forecastStartUTC.getTime() - ONE_HOUR_MS);
+        const oneHourBeforeStartMalaysia = new Date(oneHourBeforeStartUTC.getTime() + MALAYSIA_OFFSET_MS);
         
-        const isWithinPreStartWindow = now >= oneHourBeforeStart; // 1 hour before start
-        const hasNotEnded = now <= forecastEnd;
+        // Check if current time is within the prediction window
+        // 1. Must be at least 1 hour before event start (or already started)
+        // 2. Must not have ended yet
+        const isWithinPreStartWindow = nowUTC >= oneHourBeforeStartUTC; // At least 1 hour before start
+        const hasNotEnded = nowUTC <= forecastEndUTC; // Has not ended yet
         const isOngoing = isWithinPreStartWindow && hasNotEnded;
 
-        logger.debug('Event filter check', {
+        logger.debug('Event filter check (Malaysia timezone)', {
           eventId: event.eventId,
-          eventStart: eventStart.toISOString(),
-          eventEnd: eventEnd.toISOString(),
-          forecastStart: forecastStart.toISOString(),
-          forecastEnd: forecastEnd.toISOString(),
-          oneHourBeforeStart: oneHourBeforeStart.toISOString(),
-          currentTime: now.toISOString(),
+          eventName: event.name,
+          // Event times
+          eventStartUTC: eventStartUTC.toISOString(),
+          eventEndUTC: eventEndUTC.toISOString(),
+          eventStartMalaysia: this.formatMalaysiaTime(new Date(eventStartUTC.getTime() + MALAYSIA_OFFSET_MS)),
+          eventEndMalaysia: this.formatMalaysiaTime(new Date(eventEndUTC.getTime() + MALAYSIA_OFFSET_MS)),
+          // Forecast period
+          forecastStartUTC: forecastStartUTC.toISOString(),
+          forecastEndUTC: forecastEndUTC.toISOString(),
+          // Pre-start window (1 hour before)
+          oneHourBeforeStartUTC: oneHourBeforeStartUTC.toISOString(),
+          oneHourBeforeStartMalaysia: this.formatMalaysiaTime(oneHourBeforeStartMalaysia),
+          // Current time
+          currentTimeUTC: nowUTC.toISOString(),
+          currentTimeMalaysia: this.formatMalaysiaTime(nowMalaysia),
+          // Conditions
           isToday,
           hasForecast,
-          isWithinPreStartWindow,
-          hasNotEnded,
+          isWithinPreStartWindow: `${isWithinPreStartWindow} (current >= 1hr before start)`,
+          hasNotEnded: `${hasNotEnded} (current <= event end)`,
           isOngoing,
-          included: isToday && hasForecast && isOngoing
+          included: isOngoing
         });
 
-        return isToday && hasForecast && isOngoing;
+        return isOngoing;
       });
 
-      logger.info('Filtered events for today', { 
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      
+      logger.info('Filtered ongoing events (Malaysia timezone)', { 
         totalEvents: events.length,
-        todaysEvents: todaysEvents.length,
-        eventIds: todaysEvents.map(e => ({
-          eventId: e.eventId,
-          name: e.name,
-          startTime: e.dateOfEventStart,
-          endTime: e.dateOfEventEnd
-        }))
+        ongoingEvents: ongoingEvents.length,
+        currentTimeMalaysia: this.formatMalaysiaTime(nowMalaysia),
+        note: 'Predictions start 1 hour before event start time',
+        eventDetails: ongoingEvents.map(e => {
+          const startUTC = new Date(e.dateOfEventStart);
+          const endUTC = new Date(e.dateOfEventEnd);
+          const startMalaysia = new Date(startUTC.getTime() + MALAYSIA_OFFSET_MS);
+          const endMalaysia = new Date(endUTC.getTime() + MALAYSIA_OFFSET_MS);
+          const oneHourBeforeStartUTC = new Date(startUTC.getTime() - ONE_HOUR_MS);
+          const oneHourBeforeStartMalaysia = new Date(oneHourBeforeStartUTC.getTime() + MALAYSIA_OFFSET_MS);
+          
+          return {
+            eventId: e.eventId,
+            name: e.name,
+            predictionsStartMalaysia: this.formatMalaysiaTime(oneHourBeforeStartMalaysia),
+            eventStartMalaysia: this.formatMalaysiaTime(startMalaysia),
+            eventEndMalaysia: this.formatMalaysiaTime(endMalaysia)
+          };
+        })
       });
 
-      return todaysEvents;
+      return ongoingEvents;
     } catch (error) {
-      logger.error('Error getting today\'s events', { error: error.message });
+      logger.error('Error getting ongoing events', { error: error.message });
       return [];
     }
+  }
+
+  /**
+   * Formats a date to Malaysia local time string (for logging)
+   * @param {Date} date - Date object
+   * @returns {string} - Formatted string (YYYY-MM-DD HH:mm:ss MYT)
+   */
+  formatMalaysiaTime(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} MYT`;
   }
 
   /**
