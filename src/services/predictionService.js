@@ -1,5 +1,6 @@
 const axios = require('axios');
 const winston = require('winston');
+const { S3Client, ListObjectsV2Command } = require('@aws-sdk/client-s3');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -22,17 +23,31 @@ class PredictionService {
     this.modelEndpoint = process.env.PREDICTION_MODEL_ENDPOINT || 'http://56.68.30.73/predict';
     this.timeout = parseInt(process.env.PREDICTION_TIMEOUT) || 30000; // 30 seconds default
     
-    // Base URL for congestion images
-    this.congestionImageBaseUrl = 'https://vkaongvemnzkvvvxgduk.supabase.co/storage/v1/object/public/congestion_image/';
+    // S3 configuration for prediction images
+    this.s3PredictionBucket = process.env.S3_PREDICTION_IMAGE_BUCKET || 'predict-model-images';
+    this.s3PredictionPrefix = process.env.S3_PREDICTION_IMAGE_PREFIX || 'people_congested_image/test/images/';
+    this.s3PredictionRegion = process.env.S3_PREDICTION_IMAGE_REGION || 'ap-southeast-5';
+    this.s3PredictionBaseUrl = `https://${this.s3PredictionBucket}.s3.${this.s3PredictionRegion}.amazonaws.com/`;
     
-    // Array of congestion images (congested1.jpg to congested13.jpg)
-    this.congestionImages = Array.from({ length: 13 }, (_, i) => 
-      `${this.congestionImageBaseUrl}congested${i + 1}.jpg`
-    );
+    // Initialize S3 client for listing images
+    this.s3Client = new S3Client({
+      region: this.s3PredictionRegion,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+      }
+    });
+    
+    // Cache for S3 image URLs
+    this.cachedImages = [];
+    this.cacheTimestamp = null;
+    this.cacheExpiryMinutes = 60; // Refresh cache every 60 minutes
     
     logger.info('PredictionService initialized', {
       modelEndpoint: this.modelEndpoint,
-      congestionImagesCount: this.congestionImages.length
+      s3Bucket: this.s3PredictionBucket,
+      s3Prefix: this.s3PredictionPrefix,
+      s3Region: this.s3PredictionRegion
     });
   }
 
@@ -54,7 +69,7 @@ class PredictionService {
       }
 
       // Transform forecast_result to gates_info format expected by the model
-      const gatesInfo = this.transformForecastToGatesInfo(event.forecastResult, event);
+      const gatesInfo = await this.transformForecastToGatesInfo(event.forecastResult, event);
 
       const requestBody = {
         gates_info: gatesInfo,
@@ -115,9 +130,9 @@ class PredictionService {
    * Transforms forecast_result to the gates_info format expected by the prediction model
    * @param {Object} forecastResult - Forecast result from the event
    * @param {Object} event - Event object for additional context
-   * @returns {Array} - Array of gates_info objects
+   * @returns {Promise<Array>} - Array of gates_info objects
    */
-  transformForecastToGatesInfo(forecastResult, event) {
+  async transformForecastToGatesInfo(forecastResult, event) {
     try {
       // This transformation depends on your forecast_result structure
       // Based on typical forecast results, we'll extract gate information
@@ -130,36 +145,41 @@ class PredictionService {
           gateIds: forecastResult.summary.gates
         });
         
-        forecastResult.summary.gates.forEach((gateId, index) => {
+        // Process all gates with Promise.all to fetch images in parallel
+        const gatePromises = forecastResult.summary.gates.map(async (gateId, index) => {
           const gateData = forecastResult.forecast[gateId];
           const gatePrediction = forecastResult.summary.predictions?.find(p => p.gate === gateId);
           
           // Get the latest timeframe data for historical count
           const latestTimeFrame = gateData?.timeFrames?.[gateData.timeFrames.length - 1];
           
-          // Select different image for each gate from the congestion images array
-          const imageUrl = this.getImageForGate(index);
+          // Get random image from S3 for each gate
+          const imageUrl = await this.getImageForGate(index);
           
           const gateInfo = {
             gate_id: gateId, // Use forecast gate ID directly (e.g., "1", "A", "B")
             zone: `Gate ${gateId}`,
-            image_path: imageUrl, // Each gate gets a different congestion image
+            image_path: imageUrl, // Random S3 image
             total_capacity: gateData?.capacity || gatePrediction?.capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: latestTimeFrame?.predicted || gatePrediction?.avgPrediction || Math.floor(Math.random() * 50)
           };
           
-          gatesInfo.push(gateInfo);
-          
           logger.debug('Created gate_info for model', {
             gateId,
             gate_id: gateInfo.gate_id,
             capacity: gateInfo.total_capacity,
+            imageUrl,
             hasGateData: !!gateData,
             hasTimeFrames: !!gateData?.timeFrames,
             timeFramesCount: gateData?.timeFrames?.length || 0
           });
+          
+          return gateInfo;
         });
+        
+        const resolvedGates = await Promise.all(gatePromises);
+        gatesInfo.push(...resolvedGates);
       }
       // Priority 2: Check forecast_result.gates array (old format)
       else if (forecastResult.gates && Array.isArray(forecastResult.gates)) {
@@ -167,19 +187,22 @@ class PredictionService {
           eventId: event.eventId 
         });
         
-        forecastResult.gates.forEach((gate, index) => {
-          // Select different image for each gate from the congestion images array
-          const imageUrl = this.getImageForGate(index);
+        const gatePromises = forecastResult.gates.map(async (gate, index) => {
+          // Get random image from S3 for each gate
+          const imageUrl = await this.getImageForGate(index);
           
-          gatesInfo.push({
+          return {
             gate_id: gate.gate_id || gate.id || `gate_${index + 1}`,
             zone: gate.zone || gate.name || `Zone ${String.fromCharCode(65 + index)}`, // A, B, C, etc.
             image_path: gate.image_path || imageUrl,
             total_capacity: gate.capacity || gate.total_capacity || 100,
             event_type: this.mapEventType(event.eventType || 'OTHER'),
             historical_count: gate.current_count || gate.historical_count || Math.floor(Math.random() * 50)
-          });
+          };
         });
+        
+        const resolvedGates = await Promise.all(gatePromises);
+        gatesInfo.push(...resolvedGates);
       } 
       // Fallback: Create default gates
       else {
@@ -189,19 +212,25 @@ class PredictionService {
         });
         
         // Create 3 default gates
+        const defaultGatePromises = [];
         for (let i = 0; i < 3; i++) {
-          // Select different image for each gate from the congestion images array
-          const imageUrl = this.getImageForGate(i);
-          
-          gatesInfo.push({
-            gate_id: `gate_${i + 1}`,
-            zone: `Zone ${String.fromCharCode(65 + i)}`, // A, B, C
-            image_path: imageUrl,
-            total_capacity: 100,
-            event_type: this.mapEventType(event.eventType || 'OTHER'),
-            historical_count: Math.floor(Math.random() * 50) + 10 // Random between 10-60
-          });
+          defaultGatePromises.push(
+            (async () => {
+              const imageUrl = await this.getImageForGate(i);
+              return {
+                gate_id: `gate_${i + 1}`,
+                zone: `Zone ${String.fromCharCode(65 + i)}`, // A, B, C
+                image_path: imageUrl,
+                total_capacity: 100,
+                event_type: this.mapEventType(event.eventType || 'OTHER'),
+                historical_count: Math.floor(Math.random() * 50) + 10 // Random between 10-60
+              };
+            })()
+          );
         }
+        
+        const resolvedGates = await Promise.all(defaultGatePromises);
+        gatesInfo.push(...resolvedGates);
       }
 
       logger.info('Transformed forecast to gates info', { 
@@ -218,10 +247,11 @@ class PredictionService {
       });
       
       // Return minimal default structure
+      const fallbackImage = await this.getImageForGate(0);
       return [{
         gate_id: 'gate_1',
         zone: 'Zone A',
-        image_path: this.getImageForGate(0),
+        image_path: fallbackImage,
         total_capacity: 100,
         event_type: 'concert',
         historical_count: 35
@@ -247,41 +277,136 @@ class PredictionService {
   }
 
   /**
-   * Gets image URL for a specific gate from the congestion images array
-   * Each gate gets a different image using round-robin selection
-   * @param {number} gateIndex - Gate index (0-based)
-   * @returns {string} - Image URL from the congestion images array
+   * Fetches list of images from S3 bucket and caches them
+   * @returns {Promise<Array>} - Array of image URLs
    */
-  getImageForGate(gateIndex) {
-    // Use modulo to cycle through the 13 images if we have more gates than images
-    const imageIndex = gateIndex % this.congestionImages.length;
-    const imageUrl = this.congestionImages[imageIndex];
+  async fetchImagesFromS3() {
+    try {
+      // Check if cache is still valid
+      const now = Date.now();
+      const cacheAgeMinutes = this.cacheTimestamp 
+        ? (now - this.cacheTimestamp) / (1000 * 60) 
+        : Infinity;
+      
+      if (this.cachedImages.length > 0 && cacheAgeMinutes < this.cacheExpiryMinutes) {
+        logger.debug('Using cached S3 images', {
+          cachedCount: this.cachedImages.length,
+          cacheAgeMinutes: cacheAgeMinutes.toFixed(2)
+        });
+        return this.cachedImages;
+      }
+
+      logger.info('Fetching images from S3', {
+        bucket: this.s3PredictionBucket,
+        prefix: this.s3PredictionPrefix
+      });
+
+      const command = new ListObjectsV2Command({
+        Bucket: this.s3PredictionBucket,
+        Prefix: this.s3PredictionPrefix,
+        MaxKeys: 1000 // Get up to 1000 images
+      });
+
+      const response = await this.s3Client.send(command);
+      
+      // Filter for image files (jpg, jpeg, png)
+      const imageExtensions = ['.jpg', '.jpeg', '.png'];
+      const imageObjects = (response.Contents || []).filter(obj => {
+        const key = obj.Key.toLowerCase();
+        return imageExtensions.some(ext => key.endsWith(ext));
+      });
+
+      // Build full URLs for each image
+      this.cachedImages = imageObjects.map(obj => 
+        `${this.s3PredictionBaseUrl}${obj.Key}`
+      );
+
+      this.cacheTimestamp = now;
+
+      logger.info('S3 images fetched and cached', {
+        totalObjects: response.Contents?.length || 0,
+        imageCount: this.cachedImages.length,
+        sampleImages: this.cachedImages.slice(0, 3)
+      });
+
+      return this.cachedImages;
+
+    } catch (error) {
+      logger.error('Error fetching images from S3', {
+        error: error.message,
+        bucket: this.s3PredictionBucket,
+        prefix: this.s3PredictionPrefix
+      });
+      
+      // Return empty array on error, will use fallback
+      return [];
+    }
+  }
+
+  /**
+   * Gets a random image URL for prediction model
+   * Fetches from S3 bucket with 400+ images
+   * @returns {Promise<string>} - Random image URL from S3
+   */
+  async getRandomImageFromS3() {
+    try {
+      const images = await this.fetchImagesFromS3();
+      
+      if (images.length === 0) {
+        logger.warn('No S3 images available, using default');
+        return `${this.s3PredictionBaseUrl}${this.s3PredictionPrefix}example.png`;
+      }
+
+      // Select random image from the list
+      const randomIndex = Math.floor(Math.random() * images.length);
+      const selectedImage = images[randomIndex];
+      
+      logger.debug('Selected random S3 image', {
+        randomIndex,
+        totalImages: images.length,
+        selectedImage
+      });
+      
+      return selectedImage;
+
+    } catch (error) {
+      logger.error('Error getting random S3 image', { error: error.message });
+      // Fallback to example image
+      return `${this.s3PredictionBaseUrl}${this.s3PredictionPrefix}example.png`;
+    }
+  }
+
+  /**
+   * Gets image URL for a specific gate (uses random S3 images)
+   * @param {number} gateIndex - Gate index (0-based)
+   * @returns {Promise<string>} - Random image URL from S3
+   */
+  async getImageForGate(gateIndex) {
+    // Each gate gets a different random image from S3
+    const imageUrl = await this.getRandomImageFromS3();
     
     logger.debug('Selected image for gate', {
       gateIndex,
-      imageIndex,
-      imageUrl,
-      imageName: `congested${imageIndex + 1}.jpg`
+      imageUrl
     });
     
     return imageUrl;
   }
 
   /**
-   * Gets a random image from the congestion images array
-   * @returns {string} - Random image URL
+   * Gets a random image from S3 bucket
+   * @returns {Promise<string>} - Random image URL
    */
-  getRandomImage() {
-    const randomIndex = Math.floor(Math.random() * this.congestionImages.length);
-    return this.congestionImages[randomIndex];
+  async getRandomImage() {
+    return await this.getRandomImageFromS3();
   }
 
   /**
-   * Gets all available congestion images
-   * @returns {Array} - Array of all congestion image URLs
+   * Gets all available images from S3
+   * @returns {Promise<Array>} - Array of all image URLs from S3
    */
-  getAllCongestionImages() {
-    return [...this.congestionImages];
+  async getAllCongestionImages() {
+    return await this.fetchImagesFromS3();
   }
 
   /**
