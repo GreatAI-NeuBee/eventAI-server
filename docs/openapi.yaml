@@ -1529,6 +1529,132 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/forecast/{eventId}/postmortem:
+    post:
+      summary: Generate post-mortem analysis report
+      description: |
+        Generates a comprehensive post-mortem PDF report comparing forecast predictions 
+        with actual crowd behavior during the event. This report proves the effectiveness 
+        of the AI system by showing accuracy metrics and demonstrating how predictions 
+        helped manage the event.
+        
+        **Requirements:**
+        - Event must have `forecast_result` (predictions made before the event)
+        - Event must have `predict_result` (actual data from during/after the event)
+        
+        **Report includes:**
+        - Overall accuracy percentage
+        - Gate-by-gate accuracy metrics
+        - Forecast vs actual comparison charts
+        - Critical events prevented
+        - System impact analysis
+        - Value delivered to stakeholders
+      tags:
+        - Forecast
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          description: Event ID to generate post-mortem report for (must have both forecast and predict results)
+          schema:
+            type: string
+            example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+      responses:
+        '200':
+          description: Post-mortem report generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                        example: "evt_a03bf463-7940-4df0-a612-8e41994784e2"
+                      reportUrl:
+                        type: string
+                        description: Signed URL to download the post-mortem PDF report
+                        example: "https://event-ai-storage.s3.us-east-1.amazonaws.com/reports/postmortem/evt_abc123/postmortem-report-event-name-2025-10-09.pdf?X-Amz-Algorithm=..."
+                      filename:
+                        type: string
+                        example: "postmortem-report-event-name-2025-10-09.pdf"
+                      expiresIn:
+                        type: integer
+                        description: URL expiration time in seconds
+                        example: 3600
+                      expiresAt:
+                        type: string
+                        format: date-time
+                        example: "2025-10-09T17:00:00.000Z"
+                      size:
+                        type: integer
+                        description: PDF file size in bytes
+                        example: 458752
+                      s3Key:
+                        type: string
+                        example: "reports/postmortem/evt_abc123/postmortem-report-event-name-2025-10-09.pdf"
+                      reportType:
+                        type: string
+                        example: "postmortem"
+                  message:
+                    type: string
+                    example: "Post-mortem report generated successfully"
+        '400':
+          description: Event missing required data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "fail"
+                      message:
+                        type: string
+                        example: "Event does not have prediction results yet. Post-mortem requires actual data from the event."
+                      code:
+                        type: string
+                        enum:
+                          - FORECAST_NOT_FOUND
+                          - PREDICT_RESULT_NOT_FOUND
+                        example: "PREDICT_RESULT_NOT_FOUND"
+              examples:
+                noForecast:
+                  summary: No forecast result
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "Event does not have a forecast result. Cannot generate post-mortem report."
+                      code: "FORECAST_NOT_FOUND"
+                noPredictions:
+                  summary: No prediction results
+                  value:
+                    success: false
+                    error:
+                      status: "fail"
+                      message: "Event does not have prediction results yet. Post-mortem requires actual data from the event."
+                      code: "PREDICT_RESULT_NOT_FOUND"
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /api/v1/forecast/regenerate/{eventId}:
     post:
       summary: Regenerate forecast

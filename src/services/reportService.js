@@ -1110,6 +1110,520 @@ class ReportService {
   }
 
   /**
+   * Generates a post-mortem report comparing forecast vs actual predictions
+   * @param {Object} event - Event data with both forecast_result and predict_result
+   * @returns {Promise<Buffer>} - PDF buffer
+   */
+  async generatePostMortemReport(event) {
+    try {
+      logger.info('Generating post-mortem report', { eventId: event.eventId });
+
+      // Validate that both forecast and prediction results exist
+      if (!event.forecastResult) {
+        throw new Error('Event must have forecast_result for post-mortem analysis');
+      }
+      if (!event.predictResult) {
+        throw new Error('Event must have predict_result for post-mortem analysis');
+      }
+
+      // Analyze accuracy and generate comparison data
+      const comparisonData = this.analyzeAccuracy(event);
+
+      return new Promise((resolve, reject) => {
+        const doc = new PDFDocument({
+          size: 'A4',
+          margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        });
+
+        const buffers = [];
+        doc.on('data', buffers.push.bind(buffers));
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(buffers);
+          logger.info('Post-mortem PDF generation completed', { 
+            eventId: event.eventId,
+            size: pdfBuffer.length 
+          });
+          resolve(pdfBuffer);
+        });
+        doc.on('error', reject);
+
+        // Generate PDF content
+        this.addPostMortemHeader(doc, event);
+        this.addPostMortemSummary(doc, comparisonData);
+        this.addAccuracyMetrics(doc, comparisonData);
+        this.addGateComparison(doc, comparisonData);
+        this.addImpactAnalysis(doc, comparisonData);
+        this.addPostMortemFooter(doc);
+
+        doc.end();
+      });
+    } catch (error) {
+      logger.error('Error generating post-mortem report', { 
+        eventId: event.eventId, 
+        error: error.message 
+      });
+      throw new Error(`Failed to generate post-mortem report: ${error.message}`);
+    }
+  }
+
+  /**
+   * Analyzes accuracy by comparing forecast vs predictions
+   */
+  analyzeAccuracy(event) {
+    const forecast = event.forecastResult.forecast;
+    const predictions = event.predictResult;
+
+    const gates = Object.keys(forecast);
+    const gateComparisons = [];
+    let totalAccuracy = 0;
+    let totalForecasted = 0;
+    let totalActual = 0;
+    let criticalEventsAvoided = 0;
+
+    gates.forEach(gateName => {
+      const forecastGate = forecast[gateName];
+      const predictGate = predictions[gateName];
+
+      if (!predictGate) return;
+
+      const capacity = forecastGate.capacity || 1000;
+      
+      // Calculate average forecasted vs actual
+      const forecastAvg = forecastGate.timeFrames.length > 0
+        ? forecastGate.timeFrames.reduce((sum, tf) => 
+            sum + Math.abs(tf.predicted || tf.yhat || 0), 0) / forecastGate.timeFrames.length
+        : 0;
+
+      const actualAvg = predictGate.timeFrames.length > 0
+        ? predictGate.timeFrames.reduce((sum, tf) => 
+            sum + (tf.actual || 0), 0) / predictGate.timeFrames.length
+        : 0;
+
+      // Calculate accuracy percentage
+      const difference = Math.abs(forecastAvg - actualAvg);
+      const accuracy = forecastAvg > 0 
+        ? Math.max(0, 100 - (difference / forecastAvg * 100))
+        : (actualAvg === 0 ? 100 : 0);
+
+      // Check if critical events were predicted and managed
+      const forecastedCritical = forecastGate.timeFrames.filter(tf => 
+        Math.abs(tf.predicted || tf.yhat || 0) >= capacity * 0.8
+      ).length;
+
+      const actualCritical = predictGate.timeFrames.filter(tf => 
+        (tf.actual || 0) >= capacity * 0.8
+      ).length;
+
+      if (forecastedCritical > 0 && actualCritical === 0) {
+        criticalEventsAvoided++;
+      }
+
+      gateComparisons.push({
+        name: gateName,
+        capacity,
+        forecastAvg: Math.round(forecastAvg),
+        actualAvg: Math.round(actualAvg),
+        accuracy: accuracy.toFixed(1),
+        forecastPeak: Math.max(...forecastGate.timeFrames.map(tf => Math.abs(tf.predicted || tf.yhat || 0))),
+        actualPeak: Math.max(...predictGate.timeFrames.map(tf => tf.actual || 0)),
+        forecastedCritical,
+        actualCritical,
+        status: accuracy >= 80 ? 'Excellent' : accuracy >= 60 ? 'Good' : accuracy >= 40 ? 'Fair' : 'Needs Improvement'
+      });
+
+      totalAccuracy += accuracy;
+      totalForecasted += forecastAvg;
+      totalActual += actualAvg;
+    });
+
+    return {
+      event,
+      gates: gateComparisons,
+      overallMetrics: {
+        averageAccuracy: (totalAccuracy / gates.length).toFixed(1),
+        totalForecasted: Math.round(totalForecasted),
+        totalActual: Math.round(totalActual),
+        criticalEventsAvoided,
+        gatesAnalyzed: gates.length,
+        highAccuracyGates: gateComparisons.filter(g => parseFloat(g.accuracy) >= 80).length
+      }
+    };
+  }
+
+  /**
+   * Adds post-mortem report header
+   */
+  addPostMortemHeader(doc, event) {
+    doc.fontSize(26)
+       .font('Helvetica-Bold')
+       .fillColor('#059669')
+       .text('Post-Mortem Analysis Report', { align: 'center' });
+    
+    doc.fillColor('black');
+    doc.moveDown(0.3);
+    
+    doc.fontSize(12)
+       .font('Helvetica-Oblique')
+       .fillColor('#64748b')
+       .text('Forecast vs Actual Performance - Event Buddy AI', { align: 'center' });
+    
+    doc.fillColor('black');
+    doc.moveDown(0.5);
+    
+    doc.fontSize(18)
+       .font('Helvetica-Bold')
+       .text(event.name || 'Unnamed Event', { align: 'center' });
+    
+    doc.moveDown(0.3);
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .fillColor('#64748b')
+       .text(`Report Date: ${new Date().toLocaleDateString('en-US', { 
+           year: 'numeric',
+           month: 'long', 
+         day: 'numeric' 
+       })}`, { align: 'center' });
+    
+    doc.fillColor('black');
+    doc.moveDown(1.5);
+    
+    doc.moveTo(50, doc.y)
+       .lineTo(545, doc.y)
+       .lineWidth(2)
+       .stroke();
+    
+    doc.moveDown(1.5);
+  }
+
+  /**
+   * Adds post-mortem summary section
+   */
+  addPostMortemSummary(doc, comparisonData) {
+    const metrics = comparisonData.overallMetrics;
+
+    doc.fontSize(16)
+       .font('Helvetica-Bold')
+       .fillColor('#059669')
+       .text('Executive Summary', 50);
+    
+    doc.fillColor('black');
+    doc.moveDown(0.8);
+
+    // Accuracy score box
+    const boxY = doc.y;
+    doc.save();
+    doc.roundedRect(50, boxY, 495, 120, 5)
+       .fillAndStroke('#ecfdf5', '#10b981');
+    doc.restore();
+    
+    // Overall Accuracy - Big number
+    doc.fillColor('#059669')
+       .fontSize(14)
+       .font('Helvetica-Bold')
+       .text('Overall Forecast Accuracy', 60, boxY + 15, { width: 475, align: 'center' });
+    
+    doc.fontSize(48)
+       .font('Helvetica-Bold')
+       .fillColor('#047857')
+       .text(`${metrics.averageAccuracy}%`, 60, boxY + 40, { width: 475, align: 'center' });
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .fillColor('#065f46')
+       .text(`${metrics.highAccuracyGates} out of ${metrics.gatesAnalyzed} gates achieved ≥80% accuracy`, 
+         60, boxY + 95, { width: 475, align: 'center' });
+    
+    doc.fillColor('black');
+    doc.y = boxY + 125;
+    doc.moveDown(1);
+
+    // Key findings
+    doc.fontSize(11)
+       .font('Helvetica-Bold')
+       .text('Key Findings:', 50);
+    
+    doc.moveDown(0.4);
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(`✓ Forecasted ${metrics.totalForecasted.toLocaleString()} average attendees vs ${metrics.totalActual.toLocaleString()} actual`, 50)
+       .text(`✓ ${metrics.criticalEventsAvoided} critical overcrowding event${metrics.criticalEventsAvoided !== 1 ? 's' : ''} successfully prevented`, 50)
+       .text(`✓ AI predictions helped optimize resource allocation across ${metrics.gatesAnalyzed} entry points`, 50);
+    
+    doc.moveDown(2);
+  }
+
+  /**
+   * Adds accuracy metrics section
+   */
+  addAccuracyMetrics(doc, comparisonData) {
+    // Check page space
+    const minSpaceNeeded = 150;
+    const pageHeight = 792;
+    const bottomMargin = 50;
+    const availableSpace = pageHeight - bottomMargin - doc.y;
+    
+    if (availableSpace < minSpaceNeeded) {
+      doc.addPage();
+    }
+
+    doc.fontSize(14)
+       .font('Helvetica-Bold')
+       .fillColor('#059669')
+       .text('Accuracy Metrics by Gate', 50);
+    
+    doc.fillColor('black');
+    doc.moveDown(1);
+
+    comparisonData.gates.forEach((gate, index) => {
+      // Check if we have enough space
+      if (doc.y > 680) {
+        doc.addPage();
+      }
+
+      // Gate header
+      const headerY = doc.y;
+      const accuracyNum = parseFloat(gate.accuracy);
+      const color = accuracyNum >= 80 ? '#10b981' : accuracyNum >= 60 ? '#3b82f6' : '#f59e0b';
+      
+      doc.save();
+      doc.roundedRect(50, headerY, 495, 35, 5)
+         .fillAndStroke('#f8fafc', '#cbd5e1');
+      doc.restore();
+      
+      doc.fillColor('black')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text(`Gate ${gate.name}`, 60, headerY + 10);
+      
+      // Accuracy badge
+      doc.save();
+      doc.roundedRect(420, headerY + 7, 115, 20, 10)
+         .fillAndStroke(color + '30', color);
+      doc.restore();
+      
+      doc.fillColor(color)
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text(`${gate.accuracy}% Accurate`, 425, headerY + 10, { width: 105, align: 'center' });
+      
+      doc.fillColor('black');
+      doc.y = headerY + 40;
+      doc.moveDown(0.3);
+
+      // Metrics
+      doc.fontSize(9)
+         .font('Helvetica')
+         .text(`Forecasted Avg: ${gate.forecastAvg} people  |  Actual Avg: ${gate.actualAvg} people`, 60)
+         .text(`Forecasted Peak: ${Math.round(gate.forecastPeak)}  |  Actual Peak: ${Math.round(gate.actualPeak)}`, 60)
+         .text(`Status: ${gate.status}`, 60);
+      
+      doc.moveDown(0.8);
+    });
+
+    doc.moveDown(1);
+  }
+
+  /**
+   * Adds gate-by-gate comparison
+   */
+  addGateComparison(doc, comparisonData) {
+    // Check page space
+    const minSpaceNeeded = 150;
+    const pageHeight = 792;
+    const bottomMargin = 50;
+    const availableSpace = pageHeight - bottomMargin - doc.y;
+    
+    if (availableSpace < minSpaceNeeded) {
+      doc.addPage();
+    }
+
+    doc.fontSize(14)
+       .font('Helvetica-Bold')
+       .fillColor('#059669')
+       .text('Forecast vs Actual Comparison', 50);
+    
+    doc.fillColor('black');
+    doc.moveDown(1);
+
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(
+         'The following comparison demonstrates how accurately our AI system predicted crowd behavior:',
+         50,
+         doc.y,
+         { align: 'justify', width: 495 }
+       );
+    
+    doc.moveDown(1);
+
+    // Simple bar comparison for each gate
+    comparisonData.gates.forEach((gate, index) => {
+      if (doc.y > 650) {
+        doc.addPage();
+      }
+
+      doc.fontSize(11)
+         .font('Helvetica-Bold')
+         .text(`Gate ${gate.name}`, 50);
+      
+      doc.moveDown(0.3);
+
+      const barY = doc.y;
+      const maxValue = Math.max(gate.forecastAvg, gate.actualAvg, gate.capacity);
+      const barWidth = 200;
+
+      // Forecast bar
+      doc.fontSize(9)
+         .font('Helvetica')
+         .text('Forecast:', 60, barY);
+      
+      const forecastBarWidth = (gate.forecastAvg / maxValue) * barWidth;
+      doc.save();
+      doc.rect(130, barY - 2, forecastBarWidth, 12)
+         .fillAndStroke('#3b82f6', '#3b82f6');
+      doc.restore();
+      
+      doc.fillColor('black')
+         .text(gate.forecastAvg.toString(), 340, barY);
+
+      // Actual bar
+      doc.text('Actual:', 60, barY + 18);
+      
+      const actualBarWidth = (gate.actualAvg / maxValue) * barWidth;
+      doc.save();
+      doc.rect(130, barY + 16, actualBarWidth, 12)
+         .fillAndStroke('#10b981', '#10b981');
+      doc.restore();
+      
+      doc.fillColor('black')
+         .text(gate.actualAvg.toString(), 340, barY + 18);
+
+      doc.moveDown(3);
+    });
+
+    doc.moveDown(1);
+  }
+
+  /**
+   * Adds impact analysis
+   */
+  addImpactAnalysis(doc, comparisonData) {
+    // Check page space
+    const minSpaceNeeded = 200;
+    const pageHeight = 792;
+    const bottomMargin = 50;
+    const availableSpace = pageHeight - bottomMargin - doc.y;
+    
+    if (availableSpace < minSpaceNeeded) {
+      doc.addPage();
+    }
+
+    doc.fontSize(14)
+       .font('Helvetica-Bold')
+       .fillColor('#059669')
+       .text('System Impact & Value Delivered', 50);
+    
+    doc.fillColor('black');
+    doc.moveDown(1);
+
+    // Impact highlights
+    const metrics = comparisonData.overallMetrics;
+    const accuracy = parseFloat(metrics.averageAccuracy);
+    
+    doc.fontSize(11)
+       .font('Helvetica-Bold')
+       .text('How Our AI System Helped:', 50);
+    
+    doc.moveDown(0.5);
+    
+    doc.fontSize(10)
+       .font('Helvetica');
+
+    if (accuracy >= 80) {
+      doc.fillColor('#059669')
+         .text('✓ Excellent Prediction Accuracy', 50, doc.y, { continued: true })
+         .fillColor('black')
+         .text(' - Our AI achieved exceptional accuracy, proving its reliability for future events.', { continued: false });
+    } else if (accuracy >= 60) {
+      doc.fillColor('#3b82f6')
+         .text('✓ Good Prediction Performance', 50, doc.y, { continued: true })
+         .fillColor('black')
+         .text(' - Our AI provided valuable insights that helped optimize operations.', { continued: false });
+    }
+    
+    doc.moveDown(0.3);
+
+    if (metrics.criticalEventsAvoided > 0) {
+      doc.fillColor('#059669')
+         .text(`✓ Prevented ${metrics.criticalEventsAvoided} Critical Situation${metrics.criticalEventsAvoided !== 1 ? 's' : ''}`, 
+           50, doc.y, { continued: true })
+         .fillColor('black')
+         .text(' - Forecasted overcrowding allowed preemptive resource deployment.', { continued: false });
+      
+      doc.moveDown(0.3);
+    }
+
+    doc.fillColor('#059669')
+       .text('✓ Optimized Resource Allocation', 50, doc.y, { continued: true })
+       .fillColor('black')
+       .text(` - Accurate predictions enabled efficient deployment across ${metrics.gatesAnalyzed} gates.`, { continued: false });
+    
+    doc.moveDown(0.3);
+
+    doc.fillColor('#059669')
+       .text('✓ Enhanced Safety & Experience', 50, doc.y, { continued: true })
+       .fillColor('black')
+       .text(' - Proactive crowd management improved both safety and attendee satisfaction.', { continued: false });
+    
+    doc.fillColor('black');
+    doc.moveDown(1.5);
+
+    // Conclusion
+    doc.fontSize(11)
+       .font('Helvetica-Bold')
+       .text('Conclusion:', 50);
+    
+    doc.moveDown(0.4);
+    
+    doc.fontSize(10)
+       .font('Helvetica')
+       .text(
+         `With an overall accuracy of ${metrics.averageAccuracy}%, our AI-powered crowd management system ` +
+         `successfully predicted crowd behavior and enabled proactive resource management. This post-mortem ` +
+         `analysis demonstrates the tangible value of AI-driven forecasting in event management.`,
+         50,
+         doc.y,
+         { align: 'justify', width: 495 }
+       );
+    
+    doc.moveDown(2);
+  }
+
+  /**
+   * Adds post-mortem footer
+   */
+  addPostMortemFooter(doc) {
+    doc.moveDown(2);
+    
+    const pageHeight = doc.page.height;
+    const bottomMargin = 70;
+    
+    doc.fontSize(7)
+       .font('Helvetica-Oblique')
+       .fillColor('#9ca3af')
+       .text(
+         'This post-mortem analysis compares AI forecasts with actual crowd behavior. Accuracy metrics validate system performance.',
+         50,
+         pageHeight - bottomMargin,
+         { align: 'center', width: 495 }
+       );
+    
+    doc.fillColor('black');
+  }
+
+  /**
    * Formats a forecast report filename
    * @param {Object} event - Event data
    * @returns {string} - Formatted filename
@@ -1123,6 +1637,22 @@ class ReportService {
     
     const timestamp = new Date().toISOString().split('T')[0];
     return `forecast-report-${eventName}-${timestamp}.pdf`;
+  }
+
+  /**
+   * Formats a post-mortem report filename
+   * @param {Object} event - Event data
+   * @returns {string} - Formatted filename
+   */
+  getPostMortemFilename(event) {
+    const eventName = (event.name || 'event')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .substring(0, 50);
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    return `postmortem-report-${eventName}-${timestamp}.pdf`;
   }
 }
 

@@ -698,4 +698,119 @@ router.post('/:eventId/report', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * POST /forecast/:eventId/postmortem
+ * Generates a PDF post-mortem report comparing forecast vs predictions
+ */
+router.post('/:eventId/postmortem', asyncHandler(async (req, res) => {
+  const { eventId } = req.params;
+
+  logger.info('Generating post-mortem report', { eventId });
+
+  try {
+    // Get event with both forecast and predict results
+    const event = await eventService.getEventById(eventId);
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Check if forecast exists
+    if (!event.forecastResult) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event does not have a forecast result. Cannot generate post-mortem report.',
+          code: 'FORECAST_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Check if predictions exist
+    if (!event.predictResult) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event does not have prediction results yet. Post-mortem requires actual data from the event.',
+          code: 'PREDICT_RESULT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    // Generate PDF post-mortem report
+    logger.info('Generating post-mortem PDF report', { eventId });
+    const pdfBuffer = await reportService.generatePostMortemReport(event);
+
+    // Upload to S3
+    const filename = reportService.getPostMortemFilename(event);
+    const s3Key = `reports/postmortem/${eventId}/${filename}`;
+    
+    logger.info('Uploading post-mortem report to S3', { eventId, s3Key });
+    await s3Service.uploadFile(s3Key, pdfBuffer, 'application/pdf');
+
+    // Generate signed URL (valid for 1 hour)
+    logger.info('Generating signed URL for post-mortem report', { eventId });
+    const signedUrl = await s3Service.getPresignedDownloadUrl(s3Key, 3600);
+
+    logger.info('Post-mortem report generated successfully', { 
+      eventId, 
+      filename,
+      reportSize: pdfBuffer.length,
+      s3Key
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        eventId,
+        reportUrl: signedUrl,
+        filename,
+        expiresIn: 3600,
+        expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(),
+        size: pdfBuffer.length,
+        s3Key,
+        reportType: 'postmortem'
+      },
+      message: 'Post-mortem report generated successfully'
+    });
+
+  } catch (error) {
+    logger.error('Error generating post-mortem report', { 
+      eventId, 
+      error: error.message,
+      stack: error.stack 
+    });
+
+    if (error.message.includes('Event not found')) {
+      return res.status(404).json({
+        success: false,
+        error: {
+          status: 'fail',
+          message: 'Event not found',
+          code: 'EVENT_NOT_FOUND'
+        },
+        timestamp: new Date().toISOString(),
+        requestId: req.headers['x-request-id'] || 'unknown'
+      });
+    }
+
+    throw new AppError('Failed to generate post-mortem report', 500, error.message);
+  }
+}));
+
 module.exports = router;
