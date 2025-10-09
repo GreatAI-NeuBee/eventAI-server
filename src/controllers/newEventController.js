@@ -236,8 +236,10 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
       });
     }
 
-    // Search for nearby events using Serp API
-    if (venue && dateOfEventStart) {
+    // Search for nearby events using Serp API (if enabled)
+    const serpApiEnabled = process.env.SERP_API_ENABLED === 'true';
+    
+    if (serpApiEnabled && venue && dateOfEventStart) {
       logger.info('🔍 [SerpAPI] Searching for nearby events', { eventId, venue, dateOfEventStart });
       
       try {
@@ -273,11 +275,15 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
         };
       }
     } else {
-      logger.info('⏭️ [SerpAPI] Skipping nearby events search - venue or date not provided', { 
-        eventId, 
-        hasVenue: !!venue, 
-        hasDate: !!dateOfEventStart 
-      });
+      if (!serpApiEnabled) {
+        logger.info('⏸️ [SerpAPI] Nearby events search disabled via SERP_API_ENABLED env variable', { eventId });
+      } else {
+        logger.info('⏭️ [SerpAPI] Skipping nearby events search - venue or date not provided', { 
+          eventId, 
+          hasVenue: !!venue, 
+          hasDate: !!dateOfEventStart 
+        });
+      }
     }
 
     const event = await eventService.createEvent(eventData);
