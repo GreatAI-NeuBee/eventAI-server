@@ -8,6 +8,7 @@ const eventService = require('../services/eventService');
 const s3Service = require('../services/s3Service');
 const fileProcessor = require('../utils/fileProcessor');
 const bedrockService = require('../services/bedrockService');
+const serpService = require('../services/serpService');
 const { AppError, asyncHandler } = require('../utils/errorHandler');
 
 const router = express.Router();
@@ -188,7 +189,7 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
   const { name, description, venue, dateOfEventStart, dateOfEventEnd, status, venueLayout, userEmail, popularity } = req.body;
   const eventId = `evt_${uuidv4()}`;
 
-  logger.info('Creating new event', { eventId, name, hasPopularity: !!popularity });
+  logger.info('Creating new event', { eventId, name, hasPopularity: !!popularity, hasVenue: !!venue });
 
   try {
     const eventData = {
@@ -235,9 +236,58 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
       });
     }
 
+    // Search for nearby events using Serp API
+    if (venue && dateOfEventStart) {
+      logger.info('🔍 [SerpAPI] Searching for nearby events', { eventId, venue, dateOfEventStart });
+      
+      try {
+        const nearbyEvents = await serpService.searchNearbyEvents({
+          name,
+          venue,
+          dateOfEventStart,
+          location: venue // Use venue as location
+        });
+
+        // Store nearby events data
+        eventData.nearbyEvent = nearbyEvents;
+
+        logger.info('✅ [SerpAPI] Nearby events search completed', { 
+          eventId, 
+          resultsFound: nearbyEvents.results?.length || 0,
+          success: nearbyEvents.serp_metadata?.success || false,
+          hasError: !!nearbyEvents.error
+        });
+      } catch (serpError) {
+        // Log error but don't fail event creation
+        logger.error('❌ [SerpAPI] Failed to search nearby events', {
+          eventId,
+          error: serpError.message,
+          stack: serpError.stack
+        });
+        
+        // Store error information
+        eventData.nearbyEvent = {
+          error: true,
+          message: `Failed to search nearby events: ${serpError.message}`,
+          search_timestamp: new Date().toISOString()
+        };
+      }
+    } else {
+      logger.info('⏭️ [SerpAPI] Skipping nearby events search - venue or date not provided', { 
+        eventId, 
+        hasVenue: !!venue, 
+        hasDate: !!dateOfEventStart 
+      });
+    }
+
     const event = await eventService.createEvent(eventData);
 
-    logger.info('Event created successfully', { eventId, name });
+    logger.info('Event created successfully', { 
+      eventId, 
+      name,
+      hasPopularityAnalysis: !!(popularity && event.popularityExtent && !event.popularityExtent.error),
+      hasNearbyEvents: !!(event.nearbyEvent && !event.nearbyEvent.error)
+    });
 
     res.status(201).json({
       success: true,
@@ -248,6 +298,15 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
           score: event.popularityExtent.popularityScore,
           expectedTurnout: event.popularityExtent.expectedTurnout,
           recommendations: event.popularityExtent.recommendations
+        }
+      } : {}),
+      ...(event.nearbyEvent && !event.nearbyEvent.error ? {
+        nearbyEventsAnalysis: {
+          totalResults: event.nearbyEvent.results?.length || 0,
+          eventsFound: event.nearbyEvent.results?.filter(r => r.type === 'event_result').length || 0,
+          organicResults: event.nearbyEvent.results?.filter(r => r.type === 'organic_result').length || 0,
+          searchQuery: event.nearbyEvent.search_query,
+          hasAiOverview: !!event.nearbyEvent.ai_overview
         }
       } : {})
     });

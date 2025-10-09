@@ -1,0 +1,2930 @@
+{
+    "1": {
+        "capacity": 50,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    },
+    "2": {
+        "capacity": 50,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    },
+    "A": {
+        "capacity": 1200,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    },
+    "B": {
+        "capacity": 900,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    },
+    "C": {
+        "capacity": 800,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 0,
+            "riskScore": 0.18,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    },
+    "D": {
+        "capacity": 700,
+        "timeFrames": [{
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 06:30:16",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 06:35:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 06:40:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 06:45:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 06:55:20",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:05:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:10:29",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:25:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:35:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:40:21",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:45:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:50:07",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 07:55:15",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:00:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:05:08",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:10:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:15:33",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:20:18",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:25:34",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:30:24",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:40:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:45:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:50:10",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 08:55:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:05:28",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:25:32",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:35:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:40:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:45:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:50:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 09:55:30",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:00:17",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:05:19",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:10:31",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:25:22",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:40:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:45:14",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 10:50:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 11:00:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 11:05:26",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 11:10:23",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 11:15:12",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }, {
+            "actual": 41,
+            "predicted": 161,
+            "riskScore": 0.28,
+            "timestamp": "2025-10-09 11:25:25",
+            "dataSource": "ai_model",
+            "possibleIncidents": [{
+                "incident_id": 0,
+                "probability": 1,
+                "incident_name": "No incidents"
+            }]
+        }]
+    }
+}

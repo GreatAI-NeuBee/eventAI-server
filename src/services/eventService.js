@@ -59,14 +59,15 @@ class EventService {
         attachment_urls: eventData.attachmentUrls || [],
         attachment_context: eventData.attachmentContext || null,
         popularity: eventData.popularity || null,
-        popularity_extent: eventData.popularityExtent || null
+        popularity_extent: eventData.popularityExtent || null,
+        nearby_event: eventData.nearbyEvent || null // Serp API search results
       };
 
       const { data: event, error } = await this.client
         .from('events')
         .insert(eventRecord)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
         .single();
 
@@ -98,7 +99,7 @@ class EventService {
       const { data: event, error } = await this.client
         .from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
         .eq('event_id', eventId)
         .single();
@@ -173,7 +174,7 @@ class EventService {
       // Get events data
       let dataQuery = this.client.from('events')
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
         .order('date_of_event_start', { ascending: true })
         .range(offset, offset + limit - 1);
@@ -253,13 +254,14 @@ class EventService {
       if (updateData.attachmentContext !== undefined) updateFields.attachment_context = updateData.attachmentContext;
       if (updateData.popularity !== undefined) updateFields.popularity = updateData.popularity;
       if (updateData.popularityExtent !== undefined) updateFields.popularity_extent = updateData.popularityExtent;
+      if (updateData.nearbyEvent !== undefined) updateFields.nearby_event = updateData.nearbyEvent;
 
       const { data: event, error } = await this.client
         .from('events')
         .update(updateFields)
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
         .single();
 
@@ -288,7 +290,7 @@ class EventService {
         .update({ forecast_result: forecastResult })
         .eq('event_id', eventId)
         .select(`
-          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, created_at, updated_at
+          id, event_id, name, description, venue, date_of_event_start, date_of_event_end, status, venue_layout, user_email, forecast_result, attachment_urls, attachment_filenames, attachment_context, predict_result, popularity, popularity_extent, nearby_event, created_at, updated_at
         `)
         .single();
 
@@ -381,6 +383,7 @@ class EventService {
       predictResult: event.predict_result,
       popularity: event.popularity,
       popularityExtent: event.popularity_extent,
+      nearbyEvent: event.nearby_event,
       createdAt: event.created_at,
       updatedAt: event.updated_at
     };
