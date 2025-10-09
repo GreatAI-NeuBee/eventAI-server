@@ -633,18 +633,16 @@ class CronService {
   }
 
   /**
-   * Formats timestamp to match forecast_result format
+   * Format timestamp for predict_result
+   * Returns UTC ISO string to match forecast_result format
+   * @param {string} isoTimestamp - ISO 8601 timestamp
+   * @returns {string} - UTC ISO string: "2025-10-09T16:20:08.000Z"
    */
   formatTimestamp(isoTimestamp) {
+    // Keep as UTC ISO format - no conversion needed
+    // This ensures predict_result timestamps match forecast_result timestamps (both UTC)
     const date = new Date(isoTimestamp);
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    return date.toISOString();
   }
 
   /**
