@@ -614,4 +614,26 @@ router.get('/debug/events', asyncHandler(async (req, res) => {
   }
 }));
 
+/**
+ * POST /test/ongoing-notifications
+ * Manually trigger ongoing event notifications for testing
+ */
+router.post('/test/ongoing-notifications', asyncHandler(async (req, res) => {
+  try {
+    logger.info('📲 Manual trigger of ongoing event notifications requested');
+
+    const cronService = require('../services/cronService');
+    await cronService.runOngoingEventNotifications();
+
+    res.json({
+      success: true,
+      message: 'Ongoing event notifications triggered successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error triggering ongoing event notifications', { error: error.message });
+    throw new AppError('Failed to trigger ongoing event notifications', 500, error.message);
+  }
+}));
+
 module.exports = router;

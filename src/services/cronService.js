@@ -22,22 +22,43 @@ const logger = winston.createLogger({
 
 class CronService {
   constructor() {
+    // Prediction cron job settings
     this.predictionTask = null;
     this.isEnabled = process.env.ENABLE_PREDICTION_CRON === 'true';
     // Run at standard 5-minute intervals: :00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55
     this.cronPattern = process.env.PREDICTION_CRON_PATTERN || '0,5,10,15,20,25,30,35,40,45,50,55 * * * *';
     
+    // Ongoing event notification cron job settings
+    this.notificationTask = null;
+    this.notificationEnabled = process.env.ENABLE_ONGOING_EVENT_NOTIFICATIONS === 'true';
+    // Run every 10 minutes: :00, :10, :20, :30, :40, :50
+    this.notificationPattern = process.env.ONGOING_EVENT_NOTIFICATION_PATTERN || '0,10,20,30,40,50 * * * *';
+    
+    // Track last notification times to prevent spam (eventId -> timestamp)
+    this.lastNotificationTimes = new Map();
+    
     logger.info('CronService initialized', { 
-      isEnabled: this.isEnabled,
-      cronPattern: this.cronPattern,
-      description: 'Runs at standard 5-minute intervals (:00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)'
+      predictionEnabled: this.isEnabled,
+      predictionPattern: this.cronPattern,
+      notificationEnabled: this.notificationEnabled,
+      notificationPattern: this.notificationPattern,
+      predictionDescription: 'Runs at standard 5-minute intervals (:00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)',
+      notificationDescription: 'Runs every 10 minutes (:00, :10, :20, :30, :40, :50) to notify ongoing events'
     });
+  }
+
+  /**
+   * Starts both cron jobs (prediction and ongoing event notifications)
+   */
+  start() {
+    this.startPredictionCron();
+    this.startOngoingEventNotificationCron();
   }
 
   /**
    * Starts the prediction cron job
    */
-  start() {
+  startPredictionCron() {
     if (!this.isEnabled) {
       logger.info('Prediction cron job is disabled via environment variable');
       return;
@@ -61,9 +82,43 @@ class CronService {
   }
 
   /**
-   * Stops the prediction cron job
+   * Starts the ongoing event notification cron job
+   */
+  startOngoingEventNotificationCron() {
+    if (!this.notificationEnabled) {
+      logger.info('Ongoing event notification cron job is disabled via environment variable');
+      return;
+    }
+
+    if (this.notificationTask) {
+      logger.warn('Ongoing event notification cron job is already running');
+      return;
+    }
+
+    logger.info('Starting ongoing event notification cron job', { pattern: this.notificationPattern });
+
+    this.notificationTask = cron.schedule(this.notificationPattern, async () => {
+      await this.runOngoingEventNotifications();
+    }, {
+      scheduled: true,
+      timezone: process.env.TZ || 'UTC'
+    });
+
+    logger.info('Ongoing event notification cron job started successfully');
+  }
+
+  /**
+   * Stops both cron jobs
    */
   stop() {
+    this.stopPredictionCron();
+    this.stopOngoingEventNotificationCron();
+  }
+
+  /**
+   * Stops the prediction cron job
+   */
+  stopPredictionCron() {
     if (this.predictionTask) {
       this.predictionTask.stop();
       this.predictionTask = null;
@@ -74,30 +129,55 @@ class CronService {
   }
 
   /**
-   * Restarts the prediction cron job
+   * Stops the ongoing event notification cron job
+   */
+  stopOngoingEventNotificationCron() {
+    if (this.notificationTask) {
+      this.notificationTask.stop();
+      this.notificationTask = null;
+      logger.info('Ongoing event notification cron job stopped');
+    } else {
+      logger.info('No ongoing event notification cron job to stop');
+    }
+  }
+
+  /**
+   * Restarts both cron jobs
    */
   restart() {
-    logger.info('Restarting prediction cron job');
+    logger.info('Restarting all cron jobs');
     this.stop();
     
     // Re-read environment variables
     this.isEnabled = process.env.ENABLE_PREDICTION_CRON === 'true';
-    this.cronPattern = process.env.PREDICTION_CRON_PATTERN || '*/5 * * * *';
+    this.cronPattern = process.env.PREDICTION_CRON_PATTERN || '0,5,10,15,20,25,30,35,40,45,50,55 * * * *';
+    this.notificationEnabled = process.env.ENABLE_ONGOING_EVENT_NOTIFICATIONS === 'true';
+    this.notificationPattern = process.env.ONGOING_EVENT_NOTIFICATION_PATTERN || '0,10,20,30,40,50 * * * *';
     
     this.start();
   }
 
   /**
-   * Gets the status of the cron job
+   * Gets the status of both cron jobs
    */
   getStatus() {
     return {
-      isEnabled: this.isEnabled,
-      isRunning: !!this.predictionTask,
-      cronPattern: this.cronPattern,
-      timezone: process.env.TZ || 'UTC',
-      lastRun: this.lastRunTime || null,
-      nextRun: this.predictionTask ? 'Every 5 minutes' : null
+      prediction: {
+        isEnabled: this.isEnabled,
+        isRunning: !!this.predictionTask,
+        cronPattern: this.cronPattern,
+        timezone: process.env.TZ || 'UTC',
+        lastRun: this.lastRunTime || null,
+        nextRun: this.predictionTask ? 'Every 5 minutes' : null
+      },
+      ongoingEventNotifications: {
+        isEnabled: this.notificationEnabled,
+        isRunning: !!this.notificationTask,
+        cronPattern: this.notificationPattern,
+        timezone: process.env.TZ || 'UTC',
+        lastNotificationRun: this.lastNotificationRunTime || null,
+        nextRun: this.notificationTask ? 'Every 10 minutes' : null
+      }
     };
   }
 
@@ -797,6 +877,200 @@ class CronService {
         error: error.message,
         stack: error.stack
       });
+    }
+  }
+
+  /**
+   * Run ongoing event notifications for events that are currently happening
+   */
+  async runOngoingEventNotifications() {
+    try {
+      this.lastNotificationRunTime = new Date().toISOString();
+      
+      logger.info('📢 Starting ongoing event notification cron job', {
+        timestamp: this.lastNotificationRunTime
+      });
+
+      // Find events that are currently ongoing
+      const ongoingEvents = await this.getOngoingEventsForNotifications();
+
+      if (ongoingEvents.length === 0) {
+        logger.info('📢 No ongoing events found for notifications');
+        return;
+      }
+
+      logger.info('📢 Found ongoing events for notifications', { 
+        count: ongoingEvents.length,
+        eventIds: ongoingEvents.map(e => e.eventId)
+      });
+
+      // Send notifications for each ongoing event
+      const results = await Promise.allSettled(
+        ongoingEvents.map(event => this.sendOngoingEventNotification(event))
+      );
+
+      // Log results
+      const successful = results.filter(r => r.status === 'fulfilled').length;
+      const failed = results.filter(r => r.status === 'rejected').length;
+
+      logger.info('📢 Ongoing event notification cron job completed', {
+        totalEvents: ongoingEvents.length,
+        successful,
+        failed,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      logger.error('❌ Error in ongoing event notification cron job', {
+        error: error.message,
+        stack: error.stack
+      });
+    }
+  }
+
+  /**
+   * Get events that are currently ongoing (current time between start and end dates)
+   */
+  async getOngoingEventsForNotifications() {
+    try {
+      logger.info('🔍 Fetching ongoing events for notifications');
+
+      // Get current time in UTC and Malaysia timezone
+      const nowUTC = new Date();
+      const MALAYSIA_OFFSET_MS = 8 * 60 * 60 * 1000; // UTC+8 in milliseconds
+      const nowMalaysia = new Date(nowUTC.getTime() + MALAYSIA_OFFSET_MS);
+
+      logger.info('⏰ Time information for ongoing events check', {
+        nowUTC: nowUTC.toISOString(),
+        nowMalaysia: this.formatMalaysiaTime(nowMalaysia)
+      });
+
+      // Fetch all events
+      const { events } = await eventService.getEvents(1000, 0, {});
+
+      if (!events || events.length === 0) {
+        logger.info('📅 No events found in database');
+        return [];
+      }
+
+      logger.info('📅 Retrieved events for ongoing check', { 
+        totalEvents: events.length 
+      });
+
+      const ongoingEvents = events.filter(event => {
+        // Parse event start and end times (they are in UTC in the database)
+        const eventStartUTC = new Date(event.dateOfEventStart);
+        const eventEndUTC = new Date(event.dateOfEventEnd);
+
+        // Convert to Malaysia time for comparison
+        const eventStartMalaysia = new Date(eventStartUTC.getTime() + MALAYSIA_OFFSET_MS);
+        const eventEndMalaysia = new Date(eventEndUTC.getTime() + MALAYSIA_OFFSET_MS);
+
+        // Check if current time is between start and end
+        const isCurrentlyOngoing = nowMalaysia >= eventStartMalaysia && nowMalaysia <= eventEndMalaysia;
+
+        // Check if we already sent a notification recently (within last 30 minutes)
+        const lastNotificationTime = this.lastNotificationTimes.get(event.eventId);
+        const thirtyMinutesAgo = nowUTC.getTime() - (30 * 60 * 1000);
+        const shouldSendNotification = !lastNotificationTime || lastNotificationTime < thirtyMinutesAgo;
+
+        if (isCurrentlyOngoing) {
+          logger.debug('🎪 Event currently ongoing', {
+            eventId: event.eventId,
+            name: event.name,
+            eventStartMalaysia: this.formatMalaysiaTime(eventStartMalaysia),
+            eventEndMalaysia: this.formatMalaysiaTime(eventEndMalaysia),
+            currentTime: this.formatMalaysiaTime(nowMalaysia),
+            lastNotificationTime: lastNotificationTime ? new Date(lastNotificationTime).toISOString() : 'never',
+            shouldSendNotification
+          });
+        }
+
+        return isCurrentlyOngoing && shouldSendNotification;
+      });
+
+      logger.info('🎪 Filtered ongoing events for notifications', {
+        ongoingCount: ongoingEvents.length,
+        eventDetails: ongoingEvents.map(e => ({
+          eventId: e.eventId,
+          name: e.name,
+          venue: e.venue
+        }))
+      });
+
+      return ongoingEvents;
+
+    } catch (error) {
+      logger.error('❌ Error fetching ongoing events for notifications', {
+        error: error.message
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Send notification for a single ongoing event
+   */
+  async sendOngoingEventNotification(event) {
+    try {
+      logger.info('📲 Sending ongoing event notification', {
+        eventId: event.eventId,
+        name: event.name,
+        venue: event.venue
+      });
+
+      // Get subscription count to decide if it's worth sending
+      const subscriptionCount = await pushNotificationService.getSubscriptionCount(event.eventId);
+
+      if (subscriptionCount === 0) {
+        logger.info('📭 No subscribers for event, skipping notification', {
+          eventId: event.eventId
+        });
+        return { eventId: event.eventId, success: true, reason: 'no_subscribers' };
+      }
+
+      // Send the notification
+      const result = await pushNotificationService.sendToEvent(event.eventId, {
+        title: `🎪 ${event.name} is Live!`,
+        body: `The event at ${event.venue} is currently happening. Join us now!`,
+        tag: 'event-live',
+        requireInteraction: false,
+        data: {
+          type: 'event_live',
+          eventId: event.eventId,
+          eventName: event.name,
+          venue: event.venue,
+          timestamp: Date.now()
+        }
+      });
+
+      // Update last notification time
+      this.lastNotificationTimes.set(event.eventId, Date.now());
+
+      logger.info('✅ Ongoing event notification sent successfully', {
+        eventId: event.eventId,
+        sent: result.sent,
+        failed: result.failed,
+        subscriptionCount
+      });
+
+      return {
+        eventId: event.eventId,
+        success: true,
+        sent: result.sent,
+        failed: result.failed
+      };
+
+    } catch (error) {
+      logger.error('❌ Error sending ongoing event notification', {
+        eventId: event.eventId,
+        error: error.message
+      });
+      return {
+        eventId: event.eventId,
+        success: false,
+        error: error.message
+      };
     }
   }
 }
