@@ -2342,6 +2342,333 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/v1/notifications/subscribe:
+    post:
+      summary: Subscribe to push notifications
+      description: |
+        Subscribe a browser to receive push notifications for an event.
+        Uses Web Push Protocol with VAPID authentication.
+        
+        **Important**: This endpoint stores the push subscription information securely in the database.
+      tags:
+        - Push Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventId
+                - subscription
+              properties:
+                eventId:
+                  type: string
+                  description: Event ID to subscribe to
+                  example: "evt_123abc"
+                subscription:
+                  type: object
+                  description: Browser PushSubscription object
+                  required:
+                    - endpoint
+                    - keys
+                  properties:
+                    endpoint:
+                      type: string
+                      description: Browser push endpoint URL
+                      example: "https://fcm.googleapis.com/fcm/send/..."
+                    keys:
+                      type: object
+                      required:
+                        - p256dh
+                        - auth
+                      properties:
+                        p256dh:
+                          type: string
+                          description: Public encryption key (base64)
+                          example: "BDjASz8fen..."
+                        auth:
+                          type: string
+                          description: Authentication secret (base64)
+                          example: "S4dMJZPJJc..."
+      responses:
+        '201':
+          description: Successfully subscribed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully subscribed to push notifications"
+                  data:
+                    type: object
+                    properties:
+                      subscriptionId:
+                        type: string
+                        format: uuid
+                      subscribedAt:
+                        type: string
+                        format: date-time
+                      eventId:
+                        type: string
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/notifications/unsubscribe:
+    post:
+      summary: Unsubscribe from push notifications
+      description: Unsubscribe a browser from push notifications
+      tags:
+        - Push Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - endpoint
+              properties:
+                endpoint:
+                  type: string
+                  description: Browser push endpoint to unsubscribe
+                  example: "https://fcm.googleapis.com/fcm/send/..."
+      responses:
+        '200':
+          description: Successfully unsubscribed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Successfully unsubscribed from push notifications"
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/notifications/subscriptions/{eventId}:
+    get:
+      summary: Get subscription count for event
+      description: Get the number of active push notification subscriptions for an event
+      tags:
+        - Push Notifications
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Event ID
+          example: "evt_123abc"
+      responses:
+        '200':
+          description: Subscription count retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                      activeSubscriptions:
+                        type: integer
+                        example: 42
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/notifications/test:
+    post:
+      summary: Send test notification
+      description: Send a test push notification to all subscribers of an event
+      tags:
+        - Push Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventId
+              properties:
+                eventId:
+                  type: string
+                  description: Event ID
+                  example: "evt_123abc"
+                message:
+                  type: string
+                  description: Optional custom test message
+                  example: "This is a test notification!"
+      responses:
+        '200':
+          description: Test notification sent
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Test notification sent"
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                      sent:
+                        type: integer
+                        example: 40
+                      failed:
+                        type: integer
+                        example: 2
+                      totalAttempts:
+                        type: integer
+                        example: 42
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/notifications/send:
+    post:
+      summary: Send custom notification
+      description: Send a custom push notification to all subscribers of an event
+      tags:
+        - Push Notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - eventId
+                - title
+                - body
+              properties:
+                eventId:
+                  type: string
+                  description: Event ID
+                  example: "evt_123abc"
+                title:
+                  type: string
+                  description: Notification title
+                  example: "🎉 Event Update"
+                body:
+                  type: string
+                  description: Notification body text
+                  example: "Gates will open in 30 minutes!"
+                requireInteraction:
+                  type: boolean
+                  description: Whether notification requires user interaction
+                  default: false
+                data:
+                  type: object
+                  description: Additional data payload
+                  example:
+                    type: "event_update"
+                    eventId: "evt_123abc"
+      responses:
+        '200':
+          description: Notification sent successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Notification sent successfully"
+                  data:
+                    type: object
+                    properties:
+                      eventId:
+                        type: string
+                      sent:
+                        type: integer
+                        example: 38
+                      failed:
+                        type: integer
+                        example: 4
+                      totalAttempts:
+                        type: integer
+                        example: 42
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /api/v1/notifications/public-key:
+    get:
+      summary: Get VAPID public key
+      description: |
+        Get the VAPID public key required for push notification subscriptions.
+        This key should be used in the frontend when calling `pushManager.subscribe()`.
+      tags:
+        - Push Notifications
+      responses:
+        '200':
+          description: Public key retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      publicKey:
+                        type: string
+                        description: VAPID public key (base64 URL-safe)
+                        example: "BCo-xf8Jfbq7HaY7IPEPsOA07RUtlEvCpgagnZfCu8Ow12RRGDaCeIujwB5rCoKbDMrhnTEpij75q_Ig4kd7fu0"
+        '500':
+          description: Push notifications not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        example: "error"
+                      message:
+                        type: string
+                        example: "Push notifications not configured"
+
 components:
   schemas:
     User:
@@ -3525,5 +3852,21 @@ tags:
     description: AI-powered crowd forecasting operations
   - name: Prediction
     description: Real-time crowd prediction and comparison operations
+  - name: Push Notifications
+    description: |
+      Browser push notification endpoints for real-time event alerts.
+      
+      **Features:**
+      - Subscribe/unsubscribe to event notifications
+      - Automatic congestion alerts (High/Overcrowded)
+      - Custom notifications for event updates
+      - Test notifications for debugging
+      
+      **How it works:**
+      1. Frontend requests public key from `/api/v1/notifications/public-key`
+      2. Frontend subscribes browser using Push API
+      3. Frontend sends subscription to `/api/v1/notifications/subscribe`
+      4. Backend sends notifications when congestion levels are high
+      5. Notifications appear even when browser is closed (Service Worker)
   - name: Debug
     description: Debug and diagnostic endpoints

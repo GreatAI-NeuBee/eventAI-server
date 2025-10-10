@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const winston = require('winston');
 const eventService = require('./eventService');
 const predictionService = require('./predictionService');
+const pushNotificationService = require('./pushNotificationService');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -358,6 +359,9 @@ class CronService {
         totalTimeFrames: this.countTotalTimeFrames(updatedPredictResult)
       });
 
+      // 📲 Check for high congestion and send push notifications
+      await this.checkAndSendCongestionAlerts(event.eventId, updatedPredictResult);
+
       return {
         eventId: event.eventId,
         success: true,
@@ -704,6 +708,96 @@ class CronService {
   async triggerManualUpdate() {
     logger.info('Manually triggering prediction update');
     await this.runPredictionUpdate();
+  }
+
+  /**
+   * Check congestion levels and send push notifications for high/overcrowded gates
+   * @param {string} eventId - Event ID
+   * @param {Object} predictResult - Updated predict_result object
+   */
+  async checkAndSendCongestionAlerts(eventId, predictResult) {
+    try {
+      if (!predictResult || Object.keys(predictResult).length === 0) {
+        logger.debug('No predict_result to check for congestion alerts', { eventId });
+        return;
+      }
+
+      logger.debug('Checking congestion levels for push notifications', { 
+        eventId,
+        gateCount: Object.keys(predictResult).length
+      });
+
+      // Analyze each gate
+      for (const [gateId, gateData] of Object.entries(predictResult)) {
+        if (!gateData.timeFrames || gateData.timeFrames.length === 0) {
+          continue;
+        }
+
+        // Get the most recent timeframe
+        const latestTimeFrame = gateData.timeFrames[gateData.timeFrames.length - 1];
+        const capacity = gateData.capacity || 100;
+        const actual = latestTimeFrame.actual || 0;
+
+        // Calculate congestion percentage
+        const congestionPercentage = (actual / capacity) * 100;
+
+        // Determine congestion level
+        let level = 'Low';
+        if (congestionPercentage >= 100) {
+          level = 'Overcrowded';
+        } else if (congestionPercentage >= 80) {
+          level = 'High';
+        } else if (congestionPercentage >= 50) {
+          level = 'Moderate';
+        }
+
+        logger.debug('Gate congestion analysis', {
+          eventId,
+          gateId,
+          actual,
+          capacity,
+          congestionPercentage: congestionPercentage.toFixed(1),
+          level
+        });
+
+        // Send notification for High or Overcrowded levels
+        if (level === 'High' || level === 'Overcrowded') {
+          try {
+            await pushNotificationService.sendCongestionAlert(
+              eventId,
+              gateId,
+              level,
+              actual
+            );
+
+            logger.info('📲 Sent congestion alert notification', {
+              eventId,
+              gateId,
+              level,
+              peopleCount: actual,
+              capacity,
+              congestionPercentage: congestionPercentage.toFixed(1)
+            });
+          } catch (notificationError) {
+            // Log error but don't fail the prediction update
+            logger.error('Failed to send congestion alert notification', {
+              eventId,
+              gateId,
+              level,
+              error: notificationError.message
+            });
+          }
+        }
+      }
+
+    } catch (error) {
+      // Log error but don't fail the prediction update
+      logger.error('Error checking congestion alerts', {
+        eventId,
+        error: error.message,
+        stack: error.stack
+      });
+    }
   }
 }
 

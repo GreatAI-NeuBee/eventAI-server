@@ -15,6 +15,7 @@ const eventController = require('./controllers/newEventController');
 const forecastController = require('./controllers/forecastController');
 const userController = require('./controllers/userController');
 const predictionController = require('./controllers/predictionController');
+const notificationController = require('./controllers/notificationController');
 
 // Import middleware
 const errorHandler = require('./utils/errorHandler');
@@ -492,7 +493,8 @@ app.get('/', (req, res) => {
       health: `${req.protocol}://${req.get('host')}/health`,
       users: `${req.protocol}://${req.get('host')}/api/v1/users`,
       events: `${req.protocol}://${req.get('host')}/api/v1/events`,
-      forecast: `${req.protocol}://${req.get('host')}/api/v1/forecast`
+      forecast: `${req.protocol}://${req.get('host')}/api/v1/forecast`,
+      notifications: `${req.protocol}://${req.get('host')}/api/v1/notifications`
     }
   });
 });
@@ -502,6 +504,7 @@ app.use('/api/v1/users', userController);
 app.use('/api/v1/events', eventController);
 app.use('/api/v1/forecast', forecastController);
 app.use('/api/v1/prediction', predictionController);
+app.use('/api/v1/notifications', notificationController);
 
 // 404 handler
 app.use('*', (req, res) => {
