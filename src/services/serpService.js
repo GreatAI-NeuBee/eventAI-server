@@ -100,9 +100,10 @@ class SerpService {
       });
 
       const serpUrl = this.apiBaseUrl;
-      logger.info('📤 [SerpAPI] Sending request', { 
+      logger.info('📤 [SerpAPI] STEP 1: Sending initial search request', { 
         url: serpUrl,
-        method: 'GET'
+        method: 'GET',
+        query: searchParams.q
       });
 
       logger.info('⏳ [SerpAPI] Sending fetch request...');
@@ -114,18 +115,18 @@ class SerpService {
         }
       });
 
-      logger.info('📥 [SerpAPI] Response received', {
+      logger.info('📥 [SerpAPI] STEP 1: Initial response received', {
         status: response.status,
-        statusText: response.statusText,
-        headers: response.headers
+        statusText: response.statusText
       });
 
       const data = response.data;
 
-      logger.info('✅ [SerpAPI] Response Summary', {
+      logger.info('✅ [SerpAPI] STEP 1: Response Summary', {
         hasSearchMetadata: !!data.search_metadata,
         searchId: data.search_metadata?.id,
         hasAiOverview: !!data.ai_overview,
+        aiOverviewHasPageToken: !!data.ai_overview?.page_token,
         aiOverviewError: data.ai_overview?.error,
         organicResultsCount: data.organic_results?.length || 0,
         eventsResultsCount: data.events_results?.length || 0,
@@ -135,21 +136,29 @@ class SerpService {
         error: data.error
       });
 
-      // Check if AI Overview requires a second request
+      // STEP 2: Check if AI Overview requires a second request (page_token present)
       if (data.ai_overview?.page_token && data.ai_overview?.serpapi_link) {
-        logger.info('🔄 [SerpAPI] AI Overview requires second request', {
+        logger.info('🔄 [SerpAPI] STEP 2: AI Overview requires second request', {
           hasPageToken: true,
+          pageTokenLength: data.ai_overview.page_token.length,
           serpapi_link: data.ai_overview.serpapi_link.substring(0, 100) + '...'
         });
 
         try {
-          // Fetch full AI Overview using page_token
-          const aiOverviewData = await this.fetchAiOverview(data.ai_overview.page_token);
-          if (aiOverviewData) {
-            data.ai_overview = aiOverviewData;
-            logger.info('✅ [SerpAPI] AI Overview fetched successfully', {
-              textBlocksCount: aiOverviewData.text_blocks?.length || 0,
-              referencesCount: aiOverviewData.references?.length || 0
+          // STEP 3 & 4: Fetch full AI Overview using page_token
+          const aiOverviewResponse = await this.fetchAiOverview(data.ai_overview.page_token);
+          
+          // STEP 5: Replace with the full AI Overview data
+          if (aiOverviewResponse && aiOverviewResponse.ai_overview) {
+            data.ai_overview = aiOverviewResponse.ai_overview;
+            logger.info('✅ [SerpAPI] STEP 5: AI Overview saved successfully', {
+              textBlocksCount: data.ai_overview.text_blocks?.length || 0,
+              referencesCount: data.ai_overview.references?.length || 0,
+              hasThumbnail: !!data.ai_overview.thumbnail
+            });
+          } else {
+            logger.warn('⚠️ [SerpAPI] AI Overview response missing ai_overview field', {
+              responseKeys: aiOverviewResponse ? Object.keys(aiOverviewResponse) : []
             });
           }
         } catch (aiError) {
@@ -159,7 +168,7 @@ class SerpService {
           // Keep the page_token response if second request fails
         }
       } else if (data.ai_overview) {
-        logger.info('🤖 [SerpAPI] AI Overview Details', {
+        logger.info('🤖 [SerpAPI] AI Overview already complete (no page_token)', {
           hasPageToken: !!data.ai_overview.page_token,
           hasTextBlocks: !!data.ai_overview.text_blocks,
           textBlocksCount: data.ai_overview.text_blocks?.length || 0,
@@ -220,14 +229,20 @@ class SerpService {
             // Merge AI Overview from alternative query with original results
             data.ai_overview = altResponse.data.ai_overview;
             
-            // Also check for page_token in alternative response
+            // STEP 2 (Alternative): Check for page_token in alternative response
             if (altResponse.data.ai_overview?.page_token && altResponse.data.ai_overview?.serpapi_link) {
               logger.info('🔄 [SerpAPI] Alternative query AI Overview requires second request');
               try {
-                const aiOverviewData = await this.fetchAiOverview(altResponse.data.ai_overview.page_token);
-                if (aiOverviewData) {
-                  data.ai_overview = aiOverviewData;
-                  logger.info('✅ [SerpAPI] AI Overview fetched successfully from alternative query');
+                // STEP 3 & 4: Fetch full AI Overview
+                const aiOverviewResponse = await this.fetchAiOverview(altResponse.data.ai_overview.page_token);
+                
+                // STEP 5: Replace with full AI Overview data
+                if (aiOverviewResponse && aiOverviewResponse.ai_overview) {
+                  data.ai_overview = aiOverviewResponse.ai_overview;
+                  logger.info('✅ [SerpAPI] AI Overview saved from alternative query', {
+                    textBlocksCount: data.ai_overview.text_blocks?.length || 0,
+                    referencesCount: data.ai_overview.references?.length || 0
+                  });
                 }
               } catch (aiError) {
                 logger.error('❌ [SerpAPI] Failed to fetch AI Overview from alternative query', {
@@ -290,22 +305,24 @@ class SerpService {
   }
 
   /**
-   * Fetch AI Overview using page_token
+   * Fetch AI Overview using page_token (STEP 3 & 4 from serp_ai_overview.md)
    * Google sometimes returns AI Overview through a separate request
+   * Following the pattern: engine=google_ai_overview with page_token
    * @param {string} pageToken - The page token from initial response
    * @returns {Promise<Object|null>} - AI Overview data
    */
   async fetchAiOverview(pageToken) {
     try {
-      logger.info('🔄 [SerpAPI] Fetching AI Overview with page_token', {
+      logger.info('🔄 [SerpAPI] STEP 3: Fetching AI Overview with page_token', {
         tokenLength: pageToken.length,
         tokenPreview: pageToken.substring(0, 50) + '...'
       });
 
+      // STEP 4: Call the google_ai_overview endpoint with page_token
       const response = await axios.get(this.apiBaseUrl, {
         params: {
           api_key: this.apiKey,
-          engine: 'google_ai_overview',
+          engine: 'google_ai_overview', // Special engine for AI Overview
           page_token: pageToken
         },
         timeout: this.timeout,
@@ -314,14 +331,17 @@ class SerpService {
         }
       });
 
-      logger.info('📥 [SerpAPI] AI Overview response received', {
+      logger.info('📥 [SerpAPI] STEP 4: AI Overview response received', {
         status: response.status,
-        hasTextBlocks: !!response.data.text_blocks,
-        textBlocksCount: response.data.text_blocks?.length || 0,
-        hasReferences: !!response.data.references,
-        referencesCount: response.data.references?.length || 0
+        hasAiOverview: !!response.data.ai_overview,
+        hasTextBlocks: !!response.data.ai_overview?.text_blocks,
+        textBlocksCount: response.data.ai_overview?.text_blocks?.length || 0,
+        hasReferences: !!response.data.ai_overview?.references,
+        referencesCount: response.data.ai_overview?.references?.length || 0
       });
 
+      // The response structure includes ai_overview nested inside
+      // Return the full response to extract ai_overview in the caller
       return response.data;
 
     } catch (error) {

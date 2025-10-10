@@ -237,10 +237,19 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
     }
 
     // Search for nearby events using Serp API (if enabled)
+    // Following the pattern from .cursor/rules/serp_ai_overview.md:
+    // - STEP 1: Initial Google search
+    // - STEP 2: Check for ai_overview.page_token
+    // - STEP 3-4: If page_token exists, fetch full AI Overview
+    // - STEP 5: Save complete response to nearby_event
     const serpApiEnabled = process.env.SERP_API_ENABLED === 'true';
     
     if (serpApiEnabled && venue && dateOfEventStart) {
-      logger.info('🔍 [SerpAPI] Searching for nearby events', { eventId, venue, dateOfEventStart });
+      logger.info('🔍 [SerpAPI] Searching for nearby events with AI Overview', { 
+        eventId, 
+        venue, 
+        dateOfEventStart 
+      });
       
       try {
         const nearbyEvents = await serpService.searchNearbyEvents({
@@ -250,12 +259,15 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
           location: venue // Use venue as location
         });
 
-        // Store nearby events data
+        // STEP 5: Store nearby events data (includes AI Overview if available)
         eventData.nearbyEvent = nearbyEvents;
 
         logger.info('✅ [SerpAPI] Nearby events search completed', { 
           eventId, 
           resultsFound: nearbyEvents.results?.length || 0,
+          hasAiOverview: !!(nearbyEvents.ai_overview && nearbyEvents.ai_overview.text_blocks?.length > 0),
+          aiOverviewTextBlocks: nearbyEvents.ai_overview?.text_blocks?.length || 0,
+          aiOverviewReferences: nearbyEvents.ai_overview?.references?.length || 0,
           success: nearbyEvents.serp_metadata?.success || false,
           hasError: !!nearbyEvents.error
         });
@@ -312,7 +324,12 @@ router.post('/', validateCreateEvent, asyncHandler(async (req, res) => {
           eventsFound: event.nearbyEvent.results?.filter(r => r.type === 'event_result').length || 0,
           organicResults: event.nearbyEvent.results?.filter(r => r.type === 'organic_result').length || 0,
           searchQuery: event.nearbyEvent.search_query,
-          hasAiOverview: !!event.nearbyEvent.ai_overview
+          hasAiOverview: !!(event.nearbyEvent.ai_overview && event.nearbyEvent.ai_overview.text_blocks?.length > 0),
+          aiOverview: event.nearbyEvent.ai_overview ? {
+            textBlocksCount: event.nearbyEvent.ai_overview.text_blocks?.length || 0,
+            referencesCount: event.nearbyEvent.ai_overview.references?.length || 0,
+            hasThumbnail: !!event.nearbyEvent.ai_overview.thumbnail
+          } : null
         }
       } : {})
     });
