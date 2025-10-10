@@ -1,0 +1,407 @@
+{
+  "name": "WhatsApp with RAG - Event AI Assistant",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-receive",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "20be0286-2e31-4754-a195-8d26f48871a1",
+      "name": "WhatsApp Messages Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-848, 16],
+      "webhookId": "post-messages-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "try {\n  const inputData = $input.first().json;\n  const body = inputData.body || {};\n  const headers = inputData.headers || {};\n  \n  console.log('=== WHATSAPP POST REQUEST RECEIVED ===');\n  console.log('Headers:', JSON.stringify(headers, null, 2));\n  console.log('Body:', JSON.stringify(body, null, 2));\n  \n  // Parse WhatsApp webhook format\n  if (body.entry && Array.isArray(body.entry)) {\n    console.log('✅ WhatsApp webhook format detected');\n    \n    for (const entry of body.entry) {\n      if (entry.changes && Array.isArray(entry.changes)) {\n        for (const change of entry.changes) {\n          if (change.value && change.value.messages && Array.isArray(change.value.messages)) {\n            const message = change.value.messages[0];\n            if (message && message.text && message.text.body && message.text.body.trim().length > 0) {\n              console.log('📱 Message found:', message.text.body);\n              console.log('📱 From (userPhone):', message.from);\n              \n              let userPhone = message.from;\n              if (userPhone && !userPhone.startsWith('+')) {\n                userPhone = '+' + userPhone;\n              }\n              \n              const metadata = change.value.metadata || {};\n              \n              return {\n                action: 'process_message',\n                userMessage: message.text.body,\n                userPhone: message.from,\n                messageId: message.id,\n                messageTimestamp: message.timestamp,\n                phoneNumberId: metadata.phone_number_id,\n                displayPhoneNumber: metadata.display_phone_number,\n                timestamp: new Date().toISOString()\n              };\n            }\n          }\n        }\n      }\n    }\n  }\n  \n  // Test format\n  if (body.message && body.from && body.message.trim().length > 0) {\n    console.log('✅ Test message format detected');\n    return {\n      action: 'process_message',\n      userMessage: body.message.trim(),\n      userPhone: body.from,\n      messageId: 'test_' + Date.now(),\n      timestamp: new Date().toISOString()\n    };\n  }\n  \n  return {\n    action: 'unknown_format',\n    message: 'POST request received but format not recognized'\n  };\n  \n} catch (error) {\n  return {\n    action: 'error',\n    error: error.message\n  };\n}"
+      },
+      "id": "8a36d259-e334-4480-861b-093bf8fe0229",
+      "name": "Parse WhatsApp Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-640, 16]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition1",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "process_message",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8d1f706b-102d-48e2-b775-de728e97bceb",
+      "name": "Is Valid Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [-448, 16]
+    },
+    {
+      "parameters": {
+        "jsCode": "const userInput = $input.first().json;\n\nconsole.log('=== PREPARING SESSION FOR AI AGENT ===');\nconsole.log('User phone:', userInput.userPhone);\n\nconst sessionId = 'whatsapp_' + userInput.userPhone.replace(/[^0-9]/g, '');\nconsole.log('Generated session ID:', sessionId);\n\nreturn {\n  sessionId: sessionId,\n  userMessage: userInput.userMessage,\n  userPhone: userInput.userPhone,\n  messageId: userInput.messageId,\n  messageTimestamp: userInput.messageTimestamp,\n  phoneNumberId: userInput.phoneNumberId,\n  displayPhoneNumber: userInput.displayPhoneNumber,\n  timestamp: userInput.timestamp\n};"
+      },
+      "id": "05fb2985-31a2-4a02-94a3-096cba2e1951",
+      "name": "Prepare Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-208, 32]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{$json[\"userMessage\"]}}",
+        "options": {
+          "systemMessage": "You are an AI assistant for Event AI, a smart event management platform.\n\nYou help users find information about events, provide recommendations, and answer questions from the events database.\n\nYour capabilities:\n- Answer questions about upcoming events using the Supabase tool\n- Search through uploaded event documents (PDFs, CSVs) using the document search tool\n- Provide event recommendations based on user preferences\n- Help with event details like dates, venues, and descriptions\n- Explain event forecasting and crowd predictions\n\nGuidelines:\n- Use the Supabase tool to fetch structured event data from the database\n- Use the document search tool to find information from uploaded event attachments\n- Never show raw tool output (JSON) to users\n- Format results into WhatsApp-friendly text\n- Keep responses under 1000 characters\n- Be natural and friendly, like texting a friend\n- If a question is outside events, politely redirect back to event-related topics"
+        }
+      },
+      "id": "6fff0984-006a-4a2c-af7b-0e64d2e7d66e",
+      "name": "Event AI Agent with RAG",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const userInput = $input.first().json;\nconst agentResponse = $input.last().json;\n\nconsole.log('=== PROCESSING AI AGENT RESPONSE FOR WHATSAPP ===');\n\nlet aiResponse = '';\nif (agentResponse.output) {\n  aiResponse = agentResponse.output;\n} else if (agentResponse.text) {\n  aiResponse = agentResponse.text;\n} else if (typeof agentResponse === 'string') {\n  aiResponse = agentResponse;\n} else {\n  aiResponse = 'Sorry, I had trouble processing your message. Could you try asking again?';\n}\n\naiResponse = aiResponse.trim();\n\nif (aiResponse.length > 1000) {\n  aiResponse = aiResponse.substring(0, 950) + '... 📝';\n}\n\naiResponse += '\\n\\n🤖 *Event AI Assistant*';\n\nconst userPhone = userInput.userPhone || '60189154390';\n\nreturn {\n  userPhone: userPhone,\n  phoneNumberId: userInput.phoneNumberId || '780933715104847',\n  responseMessage: aiResponse,\n  originalUserMessage: userInput.userMessage,\n  messageId: userInput.messageId,\n  timestamp: new Date().toISOString(),\n  processingComplete: true\n};"
+      },
+      "id": "0c7e7bfe-92d0-45b8-a4c0-1861c214b26c",
+      "name": "Format WhatsApp Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 128]
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "780933715104847",
+        "recipientPhoneNumber": "={{ $json.userPhone || '60189154390' }}",
+        "textBody": "={{ $json.responseMessage || 'Hello from Event AI!' }}",
+        "additionalFields": {}
+      },
+      "id": "ca00d4e1-5728-4345-a3af-c773ec2a5117",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [656, 128],
+      "webhookId": "c208ee19-1f0d-48e0-88c0-807cc3578689",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "ovUU4UhEJdh86py0",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"status\": \"success\", \"message\": \"AI reply sent to user\", \"phone\": $json.userPhone } }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "dc873b94-6443-4ef2-b094-f7bd47c049a1",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [864, 128]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "bcc232c6-cb51-466c-ad53-d511b1389ec1",
+      "name": "Respond Other",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-240, 224]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {
+          "maxTokens": 500,
+          "temperature": 0.7
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [0, 192],
+      "id": "9f530004-e063-45da-a60d-384ddfa02786",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "DvN49pSrkkWdtU7D",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "events",
+        "limit": 7,
+        "filterType": "string",
+        "filterString": "{   \"user_email\": \"charleshor0311@gmail.com\" }"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [256, 192],
+      "id": "e00e4819-29ec-4006-af63-b912ad01afd2",
+      "name": "Get Events from Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ggvJYs2PfCCMd4Wf",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [112, 336],
+      "id": "cd5ebb2c-a0b7-4091-9d16-aed4b2eda680",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+      "typeVersion": 1,
+      "position": [448, 192],
+      "id": "935b1dc2-3f60-48b1-a9f5-ac9018791c16",
+      "name": "Event Documents Retriever"
+    },
+    {
+      "parameters": {
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [448, 336],
+      "id": "aa637b43-cde6-4f22-8323-a97cbd321b0f",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "ggvJYs2PfCCMd4Wf",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [448, 480],
+      "id": "7ae51827-54e8-4341-95bd-09cc5746a9ce",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "DvN49pSrkkWdtU7D",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Messages Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse WhatsApp Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse WhatsApp Message": {
+      "main": [
+        [
+          {
+            "node": "Is Valid Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Valid Message?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Other",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Session": {
+      "main": [
+        [
+          {
+            "node": "Event AI Agent with RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event AI Agent with RAG": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Event AI Agent with RAG",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Events from Supabase": {
+      "ai_tool": [
+        [
+          {
+            "node": "Event AI Agent with RAG",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Event AI Agent with RAG",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Event Documents Retriever": {
+      "ai_tool": [
+        [
+          {
+            "node": "Event AI Agent with RAG",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_vectorStore": [
+        [
+          {
+            "node": "Event Documents Retriever",
+            "type": "ai_vectorStore",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "tags": []
+}
+
