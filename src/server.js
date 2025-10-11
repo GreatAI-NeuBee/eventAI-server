@@ -16,12 +16,14 @@ const forecastController = require('./controllers/forecastController');
 const userController = require('./controllers/userController');
 const predictionController = require('./controllers/predictionController');
 const notificationController = require('./controllers/notificationController');
+const videoStreamingController = require('./controllers/videoStreamingController');
 
 // Import middleware
 const errorHandler = require('./utils/errorHandler');
 
 // Import services
 const cronService = require('./services/cronService');
+const videoStreamingService = require('./services/videoStreamingService');
 
 // Configure logger
 const logger = winston.createLogger({
@@ -494,7 +496,8 @@ app.get('/', (req, res) => {
       users: `${req.protocol}://${req.get('host')}/api/v1/users`,
       events: `${req.protocol}://${req.get('host')}/api/v1/events`,
       forecast: `${req.protocol}://${req.get('host')}/api/v1/forecast`,
-      notifications: `${req.protocol}://${req.get('host')}/api/v1/notifications`
+      notifications: `${req.protocol}://${req.get('host')}/api/v1/notifications`,
+      videoStreaming: `${req.protocol}://${req.get('host')}/api/v1/video-streaming`
     }
   });
 });
@@ -505,6 +508,7 @@ app.use('/api/v1/events', eventController);
 app.use('/api/v1/forecast', forecastController);
 app.use('/api/v1/prediction', predictionController);
 app.use('/api/v1/notifications', notificationController);
+app.use('/api/v1/video-streaming', videoStreamingController);
 
 // 404 handler
 app.use('*', (req, res) => {
@@ -572,6 +576,10 @@ const server = app.listen(PORT, '0.0.0.0', () => {
   
   // Initialize cron service for predictions
   cronService.start();
+  
+  // Initialize WebSocket server for video streaming
+  videoStreamingService.initialize(server);
+  logger.info('✅ Video streaming WebSocket server initialized');
 });
 
 module.exports = app;
