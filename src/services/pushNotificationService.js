@@ -97,12 +97,20 @@ class PushNotificationService {
             JSON.stringify(notificationPayload)
           );
 
-          // Update success metrics
+          // Update success metrics - fetch current notification_count and increment
+          const { data: currentSub } = await supabaseService.client
+            .from('push_subscriptions')
+            .select('notification_count')
+            .eq('id', sub.id)
+            .single();
+
+          const newNotificationCount = (currentSub?.notification_count || 0) + 1;
+
           await supabaseService.client
             .from('push_subscriptions')
             .update({
               last_notification_sent: new Date().toISOString(),
-              notification_count: supabaseService.client.sql`notification_count + 1`,
+              notification_count: newNotificationCount,
               failed_attempts: 0
             })
             .eq('id', sub.id);
@@ -140,11 +148,19 @@ class PushNotificationService {
               })
               .eq('id', sub.id);
           } else {
-            // Track failure
+            // Track failure - fetch current failed_attempts and increment
+            const { data: currentSub } = await supabaseService.client
+              .from('push_subscriptions')
+              .select('failed_attempts')
+              .eq('id', sub.id)
+              .single();
+
+            const newFailedAttempts = (currentSub?.failed_attempts || 0) + 1;
+
             await supabaseService.client
               .from('push_subscriptions')
               .update({
-                failed_attempts: supabaseService.client.sql`failed_attempts + 1`,
+                failed_attempts: newFailedAttempts,
                 last_error: error.message
               })
               .eq('id', sub.id);

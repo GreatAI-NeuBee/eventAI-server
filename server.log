@@ -1,0 +1,13 @@
+
+> event-ai-server@1.0.0 start
+> node src/server.js
+
+info: BedrockService initialized {"inferenceProfileArn":"arn:aws:bedrock:us-east-1:410483791019:inference-profile/us.amazon.nova-lite-v1:0","region":"us-east-1","service":"bedrock-service","timestamp":"2025-10-12T01:09:55.954Z"}
+info: 🔧 [SerpAPI] Initializing service {"apiKeyExists":true,"apiKeyLength":64,"apiKeyPreview":"e6b3bb5616...","baseUrl":"https://serpapi.com/search.json","service":"serp-service","timestamp":"2025-10-12T01:09:55.986Z"}
+info: PredictionService initialized {"congestionImagesCount":13,"modelEndpoint":"http://56.68.30.73/predict","service":"prediction-service","timestamp":"2025-10-12T01:09:56.227Z"}
+info: ✅ [WebPush] VAPID configuration initialized {"hasPrivateKey":true,"publicKeyLength":87,"service":"webpush-config","subject":"mailto:admin@eventbuddy.com","timestamp":"2025-10-12T01:09:56.257Z"}
+info: VideoStreamingService initialized {"ec2ModelIp":"http://43.217.242.232","fallDetectionEnabled":true,"pythonModelUrl":"http://localhost:5000","service":"video-streaming-service","tempDir":"/Users/charleshor/eventAI-server/temp/video_frames","timestamp":"2025-10-12T01:09:56.332Z"}
+info: CronService initialized {"notificationDescription":"Runs every 10 minutes (:00, :10, :20, :30, :40, :50) to notify ongoing events","notificationEnabled":true,"notificationPattern":"0,10,20,30,40,50 * * * *","predictionDescription":"Runs at standard 5-minute intervals (:00, :05, :10, :15, :20, :25, :30, :35, :40, :45, :50, :55)","predictionEnabled":false,"predictionPattern":"0,5,10,15,20,25,30,35,40,45,50,55 * * * *","service":"cron-service","timestamp":"2025-10-12T01:09:56.344Z"}
+(node:68390) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+error: Uncaught Exception: listen EADDRINUSE: address already in use 0.0.0.0:3000 {"address":"0.0.0.0","code":"EADDRINUSE","errno":-48,"port":3000,"service":"event-ai-server","stack":"Error: listen EADDRINUSE: address already in use 0.0.0.0:3000\n    at Server.setupListenHandle [as _listen2] (node:net:1937:16)\n    at listenInCluster (node:net:1994:12)\n    at node:net:2203:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)","syscall":"listen","timestamp":"2025-10-12T01:09:56.410Z"}
